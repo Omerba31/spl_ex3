@@ -1,12 +1,7 @@
 package bgu.spl.net;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.attribute.DosFileAttributeView;
 import java.util.List;
 
 public class Util {
@@ -33,13 +28,14 @@ public class Util {
         return bytes;
     }
 
-    public static byte[] getPartArray(byte[] src, int part) {
+    public static byte[] getPartArray(byte[] src, int blockNumber) {
+        blockNumber--;
         int copyLength = MAX_PACKET_LENGTH;
-        // for last part \ src.length < maxLength - we copy only the appropriate size.
-        if (!(src.length - MAX_PACKET_LENGTH * part > MAX_PACKET_LENGTH))
-            copyLength = src.length - MAX_PACKET_LENGTH * part;
+        // for last blockNumber \ src.length < maxLength - we copy only the appropriate size.
+        if (!(src.length - MAX_PACKET_LENGTH * blockNumber > MAX_PACKET_LENGTH))
+            copyLength = src.length - MAX_PACKET_LENGTH * blockNumber;
         byte[] retByte = new byte[copyLength];
-        System.arraycopy(src, part * MAX_PACKET_LENGTH, retByte, 0, copyLength);
+        System.arraycopy(src, blockNumber * MAX_PACKET_LENGTH, retByte, 0, copyLength);
         return retByte;
     }
 
@@ -49,6 +45,20 @@ public class Util {
             sb.append(String.format("%02X", b)); // Convert byte to hexadecimal string
         }
         return Integer.parseInt(sb.toString());
+    }
+
+    public static byte[] createDataPacket(int blockNumber, byte[] message) {
+        // calculate data size to hexadecimal
+        byte byte1 = (byte) ((message.length >> 8) & 0xFF);
+        byte byte2 = (byte) (message.length & 0xFF);
+        byte part1 = (byte) ((blockNumber >> 8) & 0xFF);
+        byte part2 = (byte) (blockNumber & 0xFF);
+        return Util.concurArrays(new byte[]{0, 3, byte1, byte2, part1, part2},
+                Util.addZero(message));
+    }
+
+    public static byte[] addZero(byte[] message) {
+        return concurArrays(message, new byte[]{(byte) 0});
     }
 
     public static byte[] concurArrays(byte[] a1, byte[] a2) {
@@ -74,13 +84,6 @@ public class Util {
         File directory = new File("Files");
         return new File(directory, fileName); //to check if file exists before - if bugs
     }
-
-/*    public static void hideFile(File file, boolean hide) throws IOException {
-        File directory = new File("Files");
-        DosFileAttributeView view = Files.getFileAttributeView(file.toPath(),
-                DosFileAttributeView.class);
-        view.setHidden(hide);
-    }*/
 
     public static byte[] getError(byte[] errorType) {
         if (errorType[0] != 0) throw new IllegalArgumentException("Illegal error type inserted!");

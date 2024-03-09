@@ -66,7 +66,6 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
         }
     }
 
-
     @Override
     public boolean shouldTerminate() {
         return shouldTerminate;
@@ -83,7 +82,9 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
             content.append(line).append("\n");
         }
         message = content.toString().getBytes();
-        return Util.getPartArray(message, 0);
+        byte[] currentMessage = message;
+        if (Util.isLastPart(message, 0)) message = null;
+        return Util.createDataPacket(1, Util.getPartArray(currentMessage, 1));
     }
 
     private byte[] WRQ(byte[] fileName) throws IOException {
@@ -91,7 +92,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
         File file = Util.getFile(stringFileName);
         try {
             if (!file.createNewFile())
-                return Util.getError(new byte[]{0, 2}); //ERROR - FILE EXISTS
+                return Util.getError(new byte[]{0, 2}); //ERROR - FILE ALREADY EXISTS
             else {
                 file.setReadable(false);
                 openFile = file;
@@ -131,8 +132,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
         int currentPart = Util.byteHexArrayToInteger(lastACK) + 1;
         byte[] currentMessage = Util.getPartArray(message, currentPart);
         if (Util.isLastPart(message, currentPart)) message = null;
-        byte[] opByte = new byte[]{0, 3};
-        return Util.concurArrays(opByte, currentMessage);
+        return Util.createDataPacket(currentPart, currentMessage);
     }
 
     private byte[] dirRQ(byte[] data) {
@@ -149,7 +149,9 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
             if (!fileNamesList.isEmpty()) fileNamesList.removeLast();
         }
         message = Util.convertListToArray(fileNamesList);
-        return Util.getPartArray(message, 0);
+        byte[] retByte = message;
+        if (Util.isLastPart(message, 0)) message = null;
+        return Util.createDataPacket(1, Util.getPartArray(retByte, 1));
     }
 
     private byte[] LogRQ(byte[] message) {
