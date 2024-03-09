@@ -2,20 +2,21 @@ package bgu.spl.net.impl.tftp;
 
 import bgu.spl.net.Util;
 import bgu.spl.net.api.BidiMessagingProtocol;
-import bgu.spl.net.srv.BaseConnections;
 import bgu.spl.net.srv.BlockingConnectionHandler;
 import bgu.spl.net.srv.Connections;
 
 import java.io.*;
 import java.net.Socket;
-import java.nio.file.NoSuchFileException;
+import java.nio.file.attribute.DosFileAttributeView;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
 
 public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
 
-    private int MAX_PACKET_LENGTH = 512;
     private boolean shouldTerminate = false;
-    private BaseConnections<byte[]> connections;
+    private TftpConnections<byte[]> connections;
     private int ownerId;
     private boolean isConnected;
     private byte[] message = null;
@@ -27,7 +28,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
 
     @Override
     public void start(int connectionId, Connections<byte[]> connections) {
-        this.connections = (BaseConnections<byte[]>) connections;
+        this.connections = (TftpConnections<byte[]>) connections;
         this.ownerId = connectionId;
         this.isConnected = false;
     }
@@ -39,7 +40,6 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
         System.arraycopy(message, 2, data, 0, data.length);
         if (data[data.length - 1] == 0) data = Util.cutFromEnd(data, 1);
         if (!isConnected & type != 7) return Util.getError(new byte[]{0, 6});
-
         switch (type) {
             case 1:
                 return RRQ(data);
@@ -50,14 +50,16 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
             case 4:
                 return AckRQ(data);
             case 6:
+                return dirRQ(data);
             case 7:
                 return LogRQ(data);
             case 8:
                 return delRQ(data);
             case 0xa:
+                return discRQ(data);
 
-                //case 5: not receiving errors from client
-                //case 9: not receiving bCast from client
+            //case 5: not receiving errors from client
+            //case 9: not receiving bCast from client
 
             default:
                 throw new UnsupportedOperationException("not to be used from client");
@@ -67,11 +69,8 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
 
     @Override
     public boolean shouldTerminate() {
-        shouldTerminate = true;
-        // TODO implement this
-        throw new UnsupportedOperationException("Unimplemented method 'shouldTerminate'");
+        return shouldTerminate;
     }
-
 
     private byte[] RRQ(byte[] filename) throws Exception {
         File file = Util.getFile(Arrays.toString(filename));
@@ -104,8 +103,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
     }
 
     private byte[] dataRQ(byte[] data) throws Exception {
-        if (openFile == null)
-            throw new FileNotFoundException();
+        if (openFile == null) throw new FileNotFoundException();
         byte[] onlyData = new byte[data.length - 4];
         System.arraycopy(data, 4, onlyData, 0, onlyData.length);
 
@@ -137,6 +135,23 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
         return Util.concurArrays(opByte, currentMessage);
     }
 
+    private byte[] dirRQ(byte[] data) {
+        File directory = new File("Files");
+        File[] files = directory.listFiles();
+        LinkedList<Byte> fileNamesList = new LinkedList<>();
+        if (files != null) {
+            for (File file : files) {
+                if (!file.canRead()) continue;
+                for (Byte letter : file.getName().getBytes())
+                    fileNamesList.add(letter);
+                fileNamesList.add((byte) 0);
+            }
+            if (!fileNamesList.isEmpty()) fileNamesList.removeLast();
+        }
+        message = Util.convertListToArray(fileNamesList);
+        return Util.getPartArray(message, 0);
+    }
+
     private byte[] LogRQ(byte[] message) {
         String userName = new String(message);
         int connectionId = userName.hashCode();
@@ -166,5 +181,11 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
 
     private void bCast(byte[] message) {
         connections.bCast(message, this.ownerId);
+    }
+
+    private byte[] discRQ(byte[] message) {
+        connections.disconnect(ownerId);
+        shouldTerminate = true;
+        return new byte[]{0, 4, 0, 0};
     }
 }

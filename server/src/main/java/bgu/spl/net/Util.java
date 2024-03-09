@@ -1,9 +1,12 @@
 package bgu.spl.net;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.attribute.DosFileAttributeView;
 import java.util.List;
 
 public class Util {
@@ -71,6 +74,13 @@ public class Util {
         File directory = new File("Files");
         return new File(directory, fileName); //to check if file exists before - if bugs
     }
+
+/*    public static void hideFile(File file, boolean hide) throws IOException {
+        File directory = new File("Files");
+        DosFileAttributeView view = Files.getFileAttributeView(file.toPath(),
+                DosFileAttributeView.class);
+        view.setHidden(hide);
+    }*/
 
     public static byte[] getError(byte[] errorType) {
         if (errorType[0] != 0) throw new IllegalArgumentException("Illegal error type inserted!");
