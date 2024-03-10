@@ -36,8 +36,10 @@ public class BlockingConnectionHandler<T> implements Runnable, ConnectionHandler
                 if (nextMessage != null) {
                     T response = protocol.process(nextMessage);
                     if (response != null) {
+                        /* was like this
                         out.write(encdec.encode(response));
-                        out.flush();
+                        out.flush();*/
+                        send(response);
                     }
                 }
             }
@@ -59,8 +61,12 @@ public class BlockingConnectionHandler<T> implements Runnable, ConnectionHandler
     }
 
     @Override
-    public void send(T msg) {
-        //IMPLEMENT IF NEEDED
+    public void send(T msg){
+        try {
+            out.write(encdec.encode(msg));
+            out.flush();
+        }
+        catch (IOException ignored){}
     }
 
 

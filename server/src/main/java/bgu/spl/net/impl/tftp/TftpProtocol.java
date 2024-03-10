@@ -28,7 +28,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
 
     @Override
     public void start(int connectionId, Connections<byte[]> connections) {
-        this.connections = (TftpConnections<byte[]>) connections;
+        this.connections = (TftpConnections<byte[]>)connections;
         this.ownerId = connectionId;
         this.isConnected = false;
     }
@@ -162,7 +162,8 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
         if (connections.canConnect(connectionId)) {
             BlockingConnectionHandler<byte[]> blockingConnectionHandler = new BlockingConnectionHandler<>(
                     new Socket(), new TftpEncoderDecoder(), new TftpProtocol(connectionId, connections));
-            connections.connect(connectionId, blockingConnectionHandler);
+            //was: connections.connect(connectionId, blockingConnectionHandler);
+            connections.connect(ownerId, blockingConnectionHandler);
             opCode = new byte[]{0, 4};
             cpMessage = new byte[]{0, 0};
             isConnected = true;
