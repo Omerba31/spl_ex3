@@ -23,20 +23,15 @@ public class TftpEncoderDecoder implements MessageEncoderDecoder<byte[]> {
         if (op > 0xa | op < 1)
             throw new IllegalArgumentException("OP not valid");
         switch (op) {
-            case 3:
-                // data packet
-                if (bytes.get(bytes.size() - 1) == 0 | bytes.size() - 6 == 512)
-                    retBytes = Util.convertListToArray(bytes);
-                break;
-            case 4:
+            case 4: //ACK packet
                 if (bytes.size() == 4) retBytes = Util.convertListToArray(bytes);
                 break;
-            case 6:
-            case 0xa:
+            case 6: //DIRQ packet
+            case 0xa: //DISC packet
                 retBytes = Util.convertListToArray(bytes);
                 break;
             default:
-                if (bytes.size() - 6 == 512)
+                if (bytes.size() - 6 == 512 | bytes.get(bytes.size()-1) == 0)
                     retBytes = Util.convertListToArray(bytes);
                 break;
         }

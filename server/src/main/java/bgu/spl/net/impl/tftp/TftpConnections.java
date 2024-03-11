@@ -12,7 +12,7 @@ public class TftpConnections<T> implements Connections<T> {
     HashMap<Integer, ConnectionHandler<T>> activeUserHashMap = new HashMap<>();
 
     public boolean canConnect(int connectionId) {
-        return activeUserHashMap.containsKey(connectionId);
+        return !activeUserHashMap.containsKey(connectionId);
     }
 
     @Override
@@ -35,6 +35,7 @@ public class TftpConnections<T> implements Connections<T> {
         activeUserHashMap.remove(connectionId);
     }
 
+    //maybe illigal
     public void bCast(T msg, int ID) {
         for (int connectionID : activeUserHashMap.keySet()) {
             if (connectionID == ID) continue;

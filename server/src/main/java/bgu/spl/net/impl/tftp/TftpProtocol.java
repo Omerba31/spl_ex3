@@ -159,7 +159,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
         int connectionId = userName.hashCode();
         byte[] cpMessage = null;
         byte[] opCode;
-        if (connections.canConnect(connectionId)) {
+        if (connections.canConnect(ownerId)) {
             BlockingConnectionHandler<byte[]> blockingConnectionHandler = new BlockingConnectionHandler<>(
                     new Socket(), new TftpEncoderDecoder(), new TftpProtocol(connectionId, connections));
             //was: connections.connect(connectionId, blockingConnectionHandler);
