@@ -70,7 +70,7 @@ public class TftpClientProtocol implements MessagingProtocol<byte[]> {
                     if (request == Request.DISC) terminate=true;
                     break;
                 }
-                int currentPart = Util.byteHexArrayToInteger(new byte[]{answer[2],answer[3]}) + 1;
+                short currentPart = (short)(Util.byteHexArrayToShort(new byte[]{answer[2],answer[3]}) + 1);
                 byte[] currentMessage = Util.getPartArray(message, currentPart);
                 if (Util.isLastPart(message, currentPart)) message = null;
                 result = Util.createDataPacket(currentPart, currentMessage);

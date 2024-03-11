@@ -7,11 +7,8 @@ import bgu.spl.net.srv.Connections;
 
 import java.io.*;
 import java.net.Socket;
-import java.nio.file.attribute.DosFileAttributeView;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.LinkedList;
-import java.util.List;
 
 public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
 
@@ -38,7 +35,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
         byte type = message[1];
         byte[] data = new byte[message.length - 2];
         System.arraycopy(message, 2, data, 0, data.length);
-        if (data[data.length - 1] == 0) data = Util.cutFromEnd(data, 1);
+        if (data.length>0 && data[data.length - 1] == 0) data = Util.cutFromEnd(data, 1);
         if (!isConnected & type != 7) return Util.getError(new byte[]{0, 6});
         switch (type) {
             case 1:
@@ -83,8 +80,8 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
         }
         message = content.toString().getBytes();
         byte[] currentMessage = message;
-        if (Util.isLastPart(message, 0)) message = null;
-        return Util.createDataPacket(1, Util.getPartArray(currentMessage, 1));
+        if (Util.isLastPart(message, 1)) message = null;
+        return Util.createDataPacket((short) 1, Util.getPartArray(currentMessage, (short) 1));
     }
 
     private byte[] WRQ(byte[] fileName) throws IOException {
@@ -129,7 +126,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
 
     private byte[] AckRQ(byte[] lastACK) {
         if (message == null) return null;
-        int currentPart = Util.byteHexArrayToInteger(lastACK) + 1;
+        short currentPart = (short)(Util.byteHexArrayToShort(lastACK) + (short)1);
         byte[] currentMessage = Util.getPartArray(message, currentPart);
         if (Util.isLastPart(message, currentPart)) message = null;
         return Util.createDataPacket(currentPart, currentMessage);
@@ -150,8 +147,8 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
         }
         message = Util.convertListToArray(fileNamesList);
         byte[] retByte = message;
-        if (Util.isLastPart(message, 0)) message = null;
-        return Util.createDataPacket(1, Util.getPartArray(retByte, 1));
+        if (Util.isLastPart(message, 1)) message = null;
+        return Util.createDataPacket((short) 1, Util.getPartArray(retByte, (short) 1));
     }
 
     private byte[] LogRQ(byte[] message) {

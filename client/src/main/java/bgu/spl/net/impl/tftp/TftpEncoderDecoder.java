@@ -19,10 +19,9 @@ public class TftpEncoderDecoder implements MessageEncoderDecoder<String> {
         if (op > 0xa | op < 1)
             throw new IllegalArgumentException("OP not valid");
         switch (op) {
-
             case 3:
                 // data packet
-                if (bytes.get(bytes.size() - 1) == 0 | bytes.size() - 6 == 512)
+                if(bytes.size()>=4 && bytes.size() == Util.convertBytesToShort(bytes.get(2),bytes.get(3)))
                     retBytes = Util.convertListToArray(bytes);
                 break;
             case 4:
@@ -33,7 +32,7 @@ public class TftpEncoderDecoder implements MessageEncoderDecoder<String> {
                 retBytes = Util.convertListToArray(bytes);
                 break;
             default:
-                if (bytes.size() - 6 == 512)
+                if (bytes.get(bytes.size() - 1) == 0 | bytes.size() - 6 == Util.MAX_PACKET_LENGTH)
                     retBytes = Util.convertListToArray(bytes);
                 break;
         }
@@ -58,7 +57,7 @@ public class TftpEncoderDecoder implements MessageEncoderDecoder<String> {
             case "RRQ":
                 encoded = getSimplePacket(1,
                         message.substring(index+1).getBytes());
-            break;
+                break;
             case "WRQ":
                 encoded = getSimplePacket(2,
                         message.substring(index+1).getBytes());
@@ -68,6 +67,7 @@ public class TftpEncoderDecoder implements MessageEncoderDecoder<String> {
                 break;
             case "DISC":
                 encoded = new byte[]{0,0xa};
+                break;
             default: throw new IllegalArgumentException();
         }
         return encoded;

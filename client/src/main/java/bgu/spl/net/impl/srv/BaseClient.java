@@ -83,6 +83,8 @@ public class BaseClient {
                 }
             }
             listeningThread.join();
+            sock.close();
+            System.out.println("client terminated");
         } catch (Exception ex) {
         }
     }
@@ -90,11 +92,11 @@ public class BaseClient {
     private Runnable listen() {
         return () -> {
             System.out.println("started listening");
-            int read;
+            int read=0;
             try {
                 while (!protocol.shouldTerminate() && (read = in.read()) >= 0) {
                     // doesn't take the first 0 todo
-                    byte nextByte = (byte) in.read();
+                    byte nextByte = (byte) read;
                     byte[] answer = encdec.decodeNextByte(nextByte);
                     if (answer==null) continue;
                     byte[] result = protocol.process(answer);

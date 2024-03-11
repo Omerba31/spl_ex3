@@ -28,7 +28,7 @@ public class Util {
         return bytes;
     }
 
-    public static byte[] getPartArray(byte[] src, int blockNumber) {
+    public static byte[] getPartArray(byte[] src, short blockNumber) {
         blockNumber--;
         int copyLength = MAX_PACKET_LENGTH;
         // for last blockNumber \ src.length < maxLength - we copy only the appropriate size.
@@ -39,23 +39,27 @@ public class Util {
         return retByte;
     }
 
-    public static int byteHexArrayToInteger(byte[] bytes) {
+    public static short byteHexArrayToShort(byte[] bytes) {
         StringBuilder sb = new StringBuilder();
         for (byte b : bytes) {
             sb.append(String.format("%02X", b)); // Convert byte to hexadecimal string
         }
-        return Integer.parseInt(sb.toString());
+        return Short.parseShort(sb.toString());
+    }
+    public static byte[] convertShortToByteArray(short s){
+        return new byte []{(byte)((s >> 8) & 0xFF), (byte)(s & 0xff)};
     }
 
-    public static byte[] createDataPacket(int blockNumber, byte[] message) {
-        // calculate data size to hexadecimal
-        byte byte1 = (byte) ((message.length >> 8) & 0xFF);
-        byte byte2 = (byte) (message.length & 0xFF);
-        byte part1 = (byte) ((blockNumber >> 8) & 0xFF);
-        byte part2 = (byte) (blockNumber & 0xFF);
+    public static short convertBytesToShort(byte byte1,byte byte2){
+        return (short) (((byte1 & 0xFF) << 8) | (byte2 & 0xFF));
+    }
+
+    public static byte[] createDataPacket(short blockNumber, byte[] message) {
+        byte[] info = concurArrays(convertShortToByteArray((short)message.length),
+                convertShortToByteArray(blockNumber));
+        info = concurArrays(new byte[]{0, 3},info);
         byte[] data = getPartArray(message, blockNumber);
-        if (data.length<MAX_PACKET_LENGTH) data = addZero(data);
-        return Util.concurArrays(new byte[]{0, 3, byte1, byte2, part1, part2}, data);
+        return Util.concurArrays(info, data);
     }
 
     public static byte[] addZero(byte[] message) {
