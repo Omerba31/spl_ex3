@@ -1,14 +1,14 @@
-package bgu.spl.net.impl.srv;
+package bgu.spl.net.impl;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 public class Util {
-    private static int MAX_PACKET_LENGTH = 512;
+    public static int MAX_PACKET_LENGTH = 512;
 
     public static boolean isLastPart(byte[] firstMessage, int currentPart) {
-        return firstMessage.length <= currentPart * MAX_PACKET_LENGTH;
+        return firstMessage.length < currentPart * MAX_PACKET_LENGTH;
     }
 
     public static byte[] convertListToArray(List<Byte> list) {
@@ -53,8 +53,9 @@ public class Util {
         byte byte2 = (byte) (message.length & 0xFF);
         byte part1 = (byte) ((blockNumber >> 8) & 0xFF);
         byte part2 = (byte) (blockNumber & 0xFF);
-        return Util.concurArrays(new byte[]{0, 3, byte1, byte2, part1, part2},
-                Util.addZero(message));
+        byte[] data = getPartArray(message, blockNumber);
+        if (data.length<MAX_PACKET_LENGTH) data = addZero(data);
+        return Util.concurArrays(new byte[]{0, 3, byte1, byte2, part1, part2}, data);
     }
 
     public static byte[] addZero(byte[] message) {

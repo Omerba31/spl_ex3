@@ -23,10 +23,6 @@ public class TftpEncoderDecoder implements MessageEncoderDecoder<byte[]> {
         if (op > 0xa | op < 1)
             throw new IllegalArgumentException("OP not valid");
         switch (op) {
-            default:
-                if (bytes.size() - 6 == 512)
-                    retBytes = Util.convertListToArray(bytes);
-                break;
             case 3:
                 // data packet
                 if (bytes.get(bytes.size() - 1) == 0 | bytes.size() - 6 == 512)
@@ -39,6 +35,10 @@ public class TftpEncoderDecoder implements MessageEncoderDecoder<byte[]> {
             case 0xa:
                 retBytes = Util.convertListToArray(bytes);
                 break;
+            default:
+                if (bytes.size() - 6 == 512)
+                    retBytes = Util.convertListToArray(bytes);
+                break;
         }
         if (retBytes != null) bytes.clear();
         return retBytes;
@@ -46,7 +46,7 @@ public class TftpEncoderDecoder implements MessageEncoderDecoder<byte[]> {
 
     @Override
     public byte[] encode(byte[] message) throws IllegalArgumentException {
-        if (message[0] == 0) throw new IllegalArgumentException();
+        if (message[0] != 0) throw new IllegalArgumentException();
         int op = message[1];
         if (op == 3 & message.length - 6 > 512) //data packet
             throw new IllegalArgumentException("too long Packet");
