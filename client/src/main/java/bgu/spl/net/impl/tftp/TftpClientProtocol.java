@@ -13,17 +13,19 @@ import java.util.LinkedList;
 import java.util.List;
 
 public class TftpClientProtocol implements MessagingProtocol<byte[]> {
-    private Request request;
+    public Request request;
     private List<Byte> partedOutput;
     private File requestedFile;
     public Boolean recievedAnswer;
     private byte[] message;
+    private boolean terminate;
     public TftpClientProtocol(){
         this.request = Request.None;
         this.partedOutput = new LinkedList<Byte>();
         this.requestedFile = null;
         this.message = null;
         this.recievedAnswer = false;
+        this.terminate = false;
     }
     @Override
     public byte[] process(byte[] answer) {
@@ -65,6 +67,7 @@ public class TftpClientProtocol implements MessagingProtocol<byte[]> {
             case 4: //ACK packet
                 if (message == null) {
                     recievedAnswer = true;
+                    if (request == Request.DISC) terminate=true;
                     break;
                 }
                 int currentPart = Util.byteHexArrayToInteger(new byte[]{answer[2],answer[3]}) + 1;
@@ -89,5 +92,5 @@ public class TftpClientProtocol implements MessagingProtocol<byte[]> {
     public boolean shouldTerminate() {
         return false;
     }
-    private enum Request{None, RRQ, DIRQ}
+    public enum Request{None, RRQ, DIRQ, DISC}
 }

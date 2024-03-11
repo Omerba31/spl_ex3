@@ -59,7 +59,7 @@ public class Util {
     }
 
     public static byte[] addZero(byte[] message) {
-        return concurArrays(message, new byte[]{(byte) 0});
+        return concurArrays(message, new byte[]{0});
     }
 
     public static byte[] concurArrays(byte[] a1, byte[] a2) {
@@ -120,5 +120,10 @@ public class Util {
                 throw new IllegalArgumentException("Illegal error type inserted!");
         }
         return Util.concurArrays(error, errorMessage.getBytes());
+    }
+    public static void printHexBytes(byte[] arr){
+        for (byte b : arr) {
+            System.out.print(String.format("%02X ", b));
+        }
     }
 }

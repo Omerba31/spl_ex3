@@ -1,5 +1,6 @@
 package bgu.spl.net.impl.tftp;
 
+import bgu.spl.net.impl.Util;
 import bgu.spl.net.impl.srv.BaseClient;
 
 import java.io.*;
@@ -19,8 +20,13 @@ public class TftpClient {
             System.out.println("you must supply one argument: host");
             System.exit(1);
         }
+
         BaseClient baseClient = new BaseClient(7777,
                 new TftpClientProtocol(), new TftpEncoderDecoder());
         baseClient.consume(args[0]);
+
+        /*String s = "ofir";
+        byte[] arr = s.getBytes();
+        System.out.println(arr);*/
     }
 }

@@ -22,11 +22,7 @@ public class BaseClient {
     private Socket sock;
     boolean terminate;
     private Scanner scanner;
-    ConcurrentLinkedQueue missionsQueue;
-
-    private Thread keyBoardThread;
     private Thread listeningThread;
-
     private BufferedInputStream in;
     private BufferedOutputStream out;
 
@@ -41,15 +37,13 @@ public class BaseClient {
         this.terminate = false;
         this.sock = null;
         this.listeningThread = null;
-        this.missionsQueue = new ConcurrentLinkedQueue<>();
         this.scanner = new Scanner(System.in);
     }
 
     public void consume(String host) {
-        keyBoardThread = Thread.currentThread();
         //BufferedReader and BufferedWriter automatically using UTF-8 encoding
         try {
-            Socket sock = new Socket(host, port);
+            sock = new Socket(host, port);
             this.in = new BufferedInputStream(new BufferedInputStream(sock.getInputStream()));
             this.out = new BufferedOutputStream(new BufferedOutputStream(sock.getOutputStream()));
             listeningThread = new Thread(listen());
@@ -69,26 +63,40 @@ public class BaseClient {
                         System.out.println("wrong input");
                     }
                 }
-                if (packet != null) send(packet);
+                switch (packet[1]) {
+                    case 0xa: //Disc
+                        terminate = true;
+                        continue;
+                    case 3: //WRQ
+                        protocol.request = TftpClientProtocol.Request.RRQ;
+                    case 6: //dirQ
+                        protocol.request = TftpClientProtocol.Request.DIRQ;
+                }
+                if (packet != null) {
+                    send(packet);
+                }
                 synchronized (this) {
                     try {
-                        if (!protocol.recievedAnswer) this.wait();
+                        while (!protocol.recievedAnswer) this.wait();
                     } catch (InterruptedException ignored) {
                     }
                 }
             }
-        } catch (IOException ex) {
+            listeningThread.join();
+        } catch (Exception ex) {
         }
-
     }
 
     private Runnable listen() {
         return () -> {
-            while (!terminate) {
-                try {
+            System.out.println("started listening");
+            int read;
+            try {
+                while (!protocol.shouldTerminate() && (read = in.read()) >= 0) {
+                    // doesn't take the first 0 todo
                     byte nextByte = (byte) in.read();
-                    byte[] answer = null;
-                    while (answer == null) answer = encdec.decodeNextByte(nextByte);
+                    byte[] answer = encdec.decodeNextByte(nextByte);
+                    if (answer==null) continue;
                     byte[] result = protocol.process(answer);
                     if (result != null) send(result);
                     if (protocol.recievedAnswer) {
@@ -97,10 +105,11 @@ public class BaseClient {
                         }
                     }
                     System.out.println("message from server: " + Arrays.toString(answer));
-                } catch (IOException e) {
-                    terminate = true;
                 }
+            }catch(IOException e){
+                terminate = true;
             }
+            System.out.println("listening thread is terminated");
         };
     }
 
@@ -108,7 +117,4 @@ public class BaseClient {
         out.write(packet);
         out.flush();
     }
-
-    private enum Request {None, RRQ, DIRQ}
-
 }
