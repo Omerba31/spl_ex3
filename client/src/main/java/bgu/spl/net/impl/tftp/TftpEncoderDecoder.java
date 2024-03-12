@@ -18,10 +18,10 @@ public class TftpEncoderDecoder implements MessageEncoderDecoder<String> {
         int op = bytes.get(1);
         if (op > 0xa | op < 1)
             throw new IllegalArgumentException("OP not valid");
-        switch (op) {
+        switch (op) { //this order is important!
             case 3:
                 // data packet
-                if(bytes.size()>=4 && bytes.size() == Util.convertBytesToShort(bytes.get(2),bytes.get(3)))
+                if(bytes.size()>=4 && bytes.size() - 6 == Util.convertBytesToShort(bytes.get(2),bytes.get(3)))
                     retBytes = Util.convertListToArray(bytes);
                 break;
             case 4:
@@ -31,6 +31,8 @@ public class TftpEncoderDecoder implements MessageEncoderDecoder<String> {
             case 0xa:
                 retBytes = Util.convertListToArray(bytes);
                 break;
+            case 5:
+                if (bytes.size()<5) break;
             default:
                 if (bytes.get(bytes.size() - 1) == 0 | bytes.size() - 6 == Util.MAX_PACKET_LENGTH)
                     retBytes = Util.convertListToArray(bytes);

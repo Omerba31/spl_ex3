@@ -28,11 +28,11 @@ public class Util {
         return bytes;
     }
 
-    public static byte[] getPartArray(byte[] src, short blockNumber) {
-        blockNumber--;
+    public static byte[] getPartArray(byte[] src, short blockNumber) { //todo observe this function - provide errors
+        //blockNumber--;
         int copyLength = MAX_PACKET_LENGTH;
         // for last blockNumber \ src.length < maxLength - we copy only the appropriate size.
-        if (!(src.length - MAX_PACKET_LENGTH * blockNumber > MAX_PACKET_LENGTH))
+        if (!(src.length - (MAX_PACKET_LENGTH * blockNumber) > MAX_PACKET_LENGTH))
             copyLength = src.length - MAX_PACKET_LENGTH * blockNumber;
         byte[] retByte = new byte[copyLength];
         System.arraycopy(src, blockNumber * MAX_PACKET_LENGTH, retByte, 0, copyLength);
@@ -85,9 +85,14 @@ public class Util {
         return file.exists();
     }
 
+    /**
+     *
+     * @param fileName - name of the file to get
+     * @return existing file if there is a file with 'fileName', else - some empty file which can be created
+     */
     public static File getFile(String fileName) {
         File directory = new File("Files");
-        return new File(directory, fileName); //to check if file exists before - if bugs
+        return new File(directory, fileName);
     }
 
     public static byte[] getError(byte[] errorType) {
@@ -123,7 +128,7 @@ public class Util {
             default:
                 throw new IllegalArgumentException("Illegal error type inserted!");
         }
-        return Util.concurArrays(error, errorMessage.getBytes());
+        return Util.addZero(Util.concurArrays(error, errorMessage.getBytes()));
     }
     public static void printHexBytes(byte[] arr){
         for (byte b : arr) {

@@ -3,17 +3,12 @@ package bgu.spl.net.impl.srv;
 import bgu.spl.net.impl.Util;
 import bgu.spl.net.impl.tftp.TftpClientProtocol;
 import bgu.spl.net.impl.tftp.TftpEncoderDecoder;
-import bgu.spl.net.api.MessagingProtocol;
-import bgu.spl.net.api.MessageEncoderDecoder;
 
 
 import java.io.*;
 import java.net.Socket;
 import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Scanner;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class BaseClient {
     private final int port;
@@ -23,6 +18,7 @@ public class BaseClient {
     boolean terminate;
     private Scanner scanner;
     private Thread listeningThread;
+    private Thread keyboardTread;
     private BufferedInputStream in;
     private BufferedOutputStream out;
 
@@ -37,6 +33,7 @@ public class BaseClient {
         this.terminate = false;
         this.sock = null;
         this.listeningThread = null;
+        this.keyboardTread = null;
         this.scanner = new Scanner(System.in);
     }
 
@@ -46,9 +43,10 @@ public class BaseClient {
             sock = new Socket(host, port);
             this.in = new BufferedInputStream(new BufferedInputStream(sock.getInputStream()));
             this.out = new BufferedOutputStream(new BufferedOutputStream(sock.getOutputStream()));
-            listeningThread = new Thread(listen());
+            keyboardTread = Thread.currentThread();
+            listeningThread = new Thread(listen(),"listening thread");
             listeningThread.start();
-            while (!terminate) {
+            while (!terminate & !protocol.shouldTerminate()) {
                 System.out.println("please type message to the server");
                 boolean correctInput = false;
                 byte[] packet = null;
@@ -63,16 +61,11 @@ public class BaseClient {
                         System.out.println("wrong input");
                     }
                 }
-                switch (packet[1]) {
-                    case 0xa: //Disc
-                        terminate = true;
-                        continue;
-                    case 3: //WRQ
-                        protocol.request = TftpClientProtocol.Request.RRQ;
-                    case 6: //dirQ
-                        protocol.request = TftpClientProtocol.Request.DIRQ;
-                }
                 if (packet != null) {
+                    Util.OP request = Util.getOpByByte(packet[1]);
+                    protocol.inform(request);
+                    if (request == Util.OP.RRQ) protocol.inform(new String(
+                            Arrays.copyOfRange(packet,2,packet.length-1)));
                     send(packet);
                 }
                 synchronized (this) {
@@ -82,6 +75,7 @@ public class BaseClient {
                     }
                 }
             }
+            listeningThread.interrupt();
             listeningThread.join();
             sock.close();
             System.out.println("client terminated");
@@ -94,8 +88,8 @@ public class BaseClient {
             System.out.println("started listening");
             int read=0;
             try {
-                while (!protocol.shouldTerminate() && (read = in.read()) >= 0) {
-                    // doesn't take the first 0 todo
+                while (!protocol.shouldTerminate() && !terminate && (read = in.read()) >= 0) {
+
                     byte nextByte = (byte) read;
                     byte[] answer = encdec.decodeNextByte(nextByte);
                     if (answer==null) continue;
@@ -106,10 +100,12 @@ public class BaseClient {
                             this.notifyAll();
                         }
                     }
-                    System.out.println("message from server: " + Arrays.toString(answer));
                 }
             }catch(IOException e){
                 terminate = true;
+                System.out.println("server probably down");
+                protocol.recievedAnswer = true;
+                keyboardTread.interrupt();
             }
             System.out.println("listening thread is terminated");
         };

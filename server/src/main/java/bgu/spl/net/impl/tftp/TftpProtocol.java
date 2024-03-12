@@ -69,7 +69,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
     }
 
     private byte[] RRQ(byte[] filename) throws Exception {
-        File file = Util.getFile(Arrays.toString(filename));
+        File file = Util.getFile(new String(filename));
         if (!file.exists()) return Util.getError(new byte[]{0, 1});
         BufferedReader reader = new BufferedReader(new FileReader(file.getAbsoluteFile()));
         StringBuilder content = new StringBuilder();

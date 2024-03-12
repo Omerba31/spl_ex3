@@ -85,9 +85,14 @@ public class Util {
         return file.exists();
     }
 
+    /**
+     *
+     * @param fileName - name of the file to get
+     * @return existing file if there is a file with 'fileName', else - some empty file which can be created
+     */
     public static File getFile(String fileName) {
         File directory = new File("Files");
-        return new File(directory, fileName); //to check if file exists before - if bugs
+        return new File(directory, fileName);
     }
 
     public static byte[] getError(byte[] errorType) {
@@ -123,11 +128,26 @@ public class Util {
             default:
                 throw new IllegalArgumentException("Illegal error type inserted!");
         }
-        return Util.concurArrays(error, errorMessage.getBytes());
+        return Util.addZero(Util.concurArrays(error, errorMessage.getBytes()));
     }
     public static void printHexBytes(byte[] arr){
         for (byte b : arr) {
             System.out.print(String.format("%02X ", b));
         }
+    }
+    public static enum OP {None, RRQ, WRQ, DATA, ACK, ERROR, DIRQ, LOGRQ, DELRQ, BCAST, DISC}
+    public static OP getOpByByte(byte n){
+        if(n==0) return OP.None;
+        else if(n==1) return OP.RRQ;
+        else if(n==2) return OP.WRQ;
+        else if(n==3) return OP.DATA;
+        else if(n==4) return OP.ACK;
+        else if(n==5) return OP.ERROR;
+        else if(n==6) return OP.DIRQ;
+        else if(n==7) return OP.LOGRQ;
+        else if(n==8) return OP.DELRQ;
+        else if(n==9) return OP.BCAST;
+        else if(n==0xa) return OP.DISC;
+        throw new RuntimeException("not an OP code");
     }
 }
