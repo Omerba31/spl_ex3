@@ -29,17 +29,7 @@ public class Util {
         return bytes;
     }
 
-    public static byte[] getPartArray(byte[] src, short blockNumber) { //todo observe this function - provide errors
-        /*//blockNumber--;
-        int copyLength = MAX_PACKET_LENGTH;
-        // for last blockNumber \ src.length < maxLength - we copy only the appropriate size.
-        if ((src.length - (MAX_PACKET_LENGTH * blockNumber) <= MAX_PACKET_LENGTH))
-            copyLength = MAX_PACKET_LENGTH - Math.abs(src.length - MAX_PACKET_LENGTH * blockNumber);
-        byte[] retByte = new byte[copyLength];
-        System.arraycopy(src, blockNumber * MAX_PACKET_LENGTH, retByte, 0, copyLength);
-        return retByte;*/
-        //blockNumber--;
-
+    public static byte[] getPartArray(byte[] src, short blockNumber) {
         int numOfBlocksToRemove = blockNumber - 1;
         int copyLength = src.length - (MAX_PACKET_LENGTH * numOfBlocksToRemove);
         if (copyLength < 0)
@@ -70,10 +60,10 @@ public class Util {
     }
 
     public static byte[] createDataPacket(short blockNumber, byte[] message) {
-        byte[] info = concurArrays(convertShortToByteArray((short) message.length),
+        byte[] data = getPartArray(message, blockNumber);
+        byte[] info = concurArrays(convertShortToByteArray((short) data.length),
                 convertShortToByteArray(blockNumber));
         info = concurArrays(new byte[]{0, 3}, info);
-        byte[] data = getPartArray(message, blockNumber);
         return Util.concurArrays(info, data);
     }
 

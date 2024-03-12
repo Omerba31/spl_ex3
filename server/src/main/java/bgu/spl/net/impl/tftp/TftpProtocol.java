@@ -69,9 +69,9 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
     }
 
     private byte[] RRQ(byte[] filename) throws Exception {
-        //File file = Util.getFile(new String(filename));
-        File directory = new File("Files");
-        File file = new File(directory, new String(filename));
+        File file = Util.getFile(new String(filename));
+        /*File directory = new File("Files");
+        File file = new File(directory, new String(filename));*/
         if (!file.exists()) return Util.getError(new byte[]{0, 1});
         BufferedReader reader = new BufferedReader(new FileReader(file.getAbsoluteFile()));
         StringBuilder content = new StringBuilder();
@@ -83,7 +83,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
         message = content.toString().getBytes();
         byte[] currentMessage = message;
         if (Util.isLastPart(message, 1)) message = null;
-        return Util.createDataPacket((short) 1, Util.getPartArray(currentMessage, (short) 1));
+        return Util.createDataPacket((short) 1, currentMessage);
     }
 
     private byte[] WRQ(byte[] fileName) throws IOException {
@@ -129,7 +129,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
     private byte[] AckRQ(byte[] lastACK) {
         if (message == null) return null;
         short currentPart = (short) (Util.byteHexArrayToShort(lastACK) + (short) 1);
-        byte[] currentMessage = Util.getPartArray(message, currentPart);
+        byte[] currentMessage = message;
         if (Util.isLastPart(message, currentPart)) message = null;
         return Util.createDataPacket(currentPart, currentMessage);
     }
@@ -151,7 +151,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
         message = Util.convertListToArray(fileNamesList);
         byte[] retByte = message;
         if (Util.isLastPart(message, 1)) message = null;
-        return Util.createDataPacket((short) 1, Util.getPartArray(retByte, (short) 1));
+        return Util.createDataPacket((short) 1, retByte);
     }
 
     private byte[] LogRQ(byte[] message) {
