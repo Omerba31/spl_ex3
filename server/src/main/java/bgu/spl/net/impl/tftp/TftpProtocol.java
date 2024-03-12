@@ -157,8 +157,6 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
     private byte[] LogRQ(byte[] message) {
         String userName = new String(message);
         int connectionId = userName.hashCode();
-        if (connections == null) connections = new TftpConnections<>();
-        start(connectionId, connections);
         byte[] cpMessage;
         byte[] opCode;
         if (connections.canConnect(ownerId)) {

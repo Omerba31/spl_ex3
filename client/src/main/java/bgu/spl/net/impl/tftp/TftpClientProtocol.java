@@ -47,8 +47,10 @@ public class TftpClientProtocol implements MessagingProtocol<byte[]> {
                 }
                 else if (request == Util.OP.RRQ) {
                     try {
-                        requestedFile.createNewFile(); // if it exists does nothing
-                        requestedFile.setReadable(false);
+                        if (!requestedFile.exists()){
+                            requestedFile.createNewFile(); // if it exists does nothing
+                            requestedFile.setReadable(false);
+                        }
                         BufferedWriter writer =
                                 new BufferedWriter(new FileWriter(requestedFile.getAbsoluteFile()));
                         byte[] onlyData = Arrays.copyOfRange(answer,6,answer.length);

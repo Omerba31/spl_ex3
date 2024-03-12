@@ -35,7 +35,6 @@ public class TftpConnections<T> implements Connections<T> {
         activeUserHashMap.remove(connectionId);
     }
 
-    //maybe illigal
     public void bCast(T msg, int ID) {
         for (int connectionID : activeUserHashMap.keySet()) {
             if (connectionID == ID) continue;
