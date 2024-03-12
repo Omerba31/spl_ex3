@@ -43,13 +43,13 @@ public class Util {
         return retByte;
     }
 
-    public static short byteHexArrayToShort(byte[] bytes) {
+    /*public static short byteHexArrayToShort(byte[] bytes) {
         StringBuilder sb = new StringBuilder();
         for (byte b : bytes) {
             sb.append(String.format("%02X", b)); // Convert byte to hexadecimal string
         }
         return Short.parseShort(sb.toString());
-    }
+    }*/
 
     public static byte[] convertShortToByteArray(short s) {
         return new byte[]{(byte) ((s >> 8) & 0xFF), (byte) (s & 0xff)};
@@ -84,25 +84,16 @@ public class Util {
         return retByte;
     }
 
-/*    public static boolean isFileExist(String filename) {
-        File directory = new File("Files");
-        File file = new File(directory, filename);
-        return file.exists();
-    }*/
-
     /**
      * @param fileName - name of the file to get
      * @return existing file if there is a file with 'fileName', else - some empty file which can be created
      */
     public static File getFile(String fileName) {
-        String FilesPath = System.getProperty("user.dir") + "\\server\\Files";
+        //String FilesPath = System.getProperty("user.dir") + "\\server\\Files";
+        String FilesPath = "Files";
         File directory = new File(FilesPath);
         return new File(directory, fileName);
     }
-    /*public static File getFile(String fileName) {
-        File directory = new File("Files");
-        return new File(directory, fileName);
-    }*/
 
     public static byte[] getError(byte[] errorType) {
         if (errorType[0] != 0) throw new IllegalArgumentException("Illegal error type inserted!");
@@ -144,5 +135,21 @@ public class Util {
         for (byte b : arr) {
             System.out.print(String.format("%02X ", b));
         }
+    }
+    public static enum OP {None, RRQ, WRQ, DATA, ACK, ERROR, DIRQ, LOGRQ, DELRQ, BCAST, DISC}
+
+    public static OP getOpByByte(byte n) {
+        if (n == 0) return OP.None;
+        else if (n == 1) return OP.RRQ;
+        else if (n == 2) return OP.WRQ;
+        else if (n == 3) return OP.DATA;
+        else if (n == 4) return OP.ACK;
+        else if (n == 5) return OP.ERROR;
+        else if (n == 6) return OP.DIRQ;
+        else if (n == 7) return OP.LOGRQ;
+        else if (n == 8) return OP.DELRQ;
+        else if (n == 9) return OP.BCAST;
+        else if (n == 0xa) return OP.DISC;
+        throw new RuntimeException("not an OP code");
     }
 }

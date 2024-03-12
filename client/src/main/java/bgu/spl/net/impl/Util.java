@@ -3,6 +3,7 @@ package bgu.spl.net.impl;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 public class Util {
     public static int MAX_PACKET_LENGTH = 512;
@@ -29,23 +30,26 @@ public class Util {
     }
 
     public static byte[] getPartArray(byte[] src, short blockNumber) {
-        blockNumber--;
-        int copyLength = MAX_PACKET_LENGTH;
-        // for last blockNumber \ src.length < maxLength - we copy only the appropriate size.
-        if (!(src.length - MAX_PACKET_LENGTH * blockNumber > MAX_PACKET_LENGTH))
-            copyLength = src.length - MAX_PACKET_LENGTH * blockNumber;
+        int numOfBlocksToRemove = blockNumber - 1;
+        int copyLength = src.length - (MAX_PACKET_LENGTH * numOfBlocksToRemove);
+        if (copyLength < 0)
+            throw new NoSuchElementException("block number: " + blockNumber + " doesn't exist");
+        if (copyLength == 0) // for check
+            System.out.println("empty packet");
+        if (copyLength > MAX_PACKET_LENGTH) // NOT legal sized packet
+            copyLength = MAX_PACKET_LENGTH;
         byte[] retByte = new byte[copyLength];
-        System.arraycopy(src, blockNumber * MAX_PACKET_LENGTH, retByte, 0, copyLength);
+        System.arraycopy(src, numOfBlocksToRemove * MAX_PACKET_LENGTH, retByte, 0, copyLength);
         return retByte;
     }
 
-    public static short byteHexArrayToShort(byte[] bytes) {
+    /*public static short byteHexArrayToShort(byte[] bytes) {
         StringBuilder sb = new StringBuilder();
         for (byte b : bytes) {
             sb.append(String.format("%02X", b)); // Convert byte to hexadecimal string
         }
         return Short.parseShort(sb.toString());
-    }
+    }*/
 
     public static byte[] convertShortToByteArray(short s) {
         return new byte[]{(byte) ((s >> 8) & 0xFF), (byte) (s & 0xff)};
@@ -56,10 +60,10 @@ public class Util {
     }
 
     public static byte[] createDataPacket(short blockNumber, byte[] message) {
-        byte[] info = concurArrays(convertShortToByteArray((short) message.length),
+        byte[] data = getPartArray(message, blockNumber);
+        byte[] info = concurArrays(convertShortToByteArray((short) data.length),
                 convertShortToByteArray(blockNumber));
         info = concurArrays(new byte[]{0, 3}, info);
-        byte[] data = getPartArray(message, blockNumber);
         return Util.concurArrays(info, data);
     }
 
@@ -80,18 +84,14 @@ public class Util {
         return retByte;
     }
 
-    public static boolean isFileExist(String filename) {
-        File directory = new File("Files");
-        File file = new File(directory, filename);
-        return file.exists();
-    }
-
     /**
      * @param fileName - name of the file to get
      * @return existing file if there is a file with 'fileName', else - some empty file which can be created
      */
     public static File getFile(String fileName) {
-        File directory = new File("Files");
+        //String FilesPath = System.getProperty("user.dir") + "\\server\\Files";
+        String FilesPath = "Files";
+        File directory = new File(FilesPath);
         return new File(directory, fileName);
     }
 
@@ -136,7 +136,6 @@ public class Util {
             System.out.print(String.format("%02X ", b));
         }
     }
-
     public static enum OP {None, RRQ, WRQ, DATA, ACK, ERROR, DIRQ, LOGRQ, DELRQ, BCAST, DISC}
 
     public static OP getOpByByte(byte n) {

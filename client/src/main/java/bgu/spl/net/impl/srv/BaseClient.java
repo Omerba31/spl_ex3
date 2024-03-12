@@ -64,9 +64,9 @@ public class BaseClient {
                 if (packet != null) {
                     Util.OP request = Util.getOpByByte(packet[1]);
                     protocol.inform(request);
-                    if (request == Util.OP.RRQ) {
+                    if (request == Util.OP.RRQ | request == Util.OP.WRQ) {
                         protocol.inform(new String(
-                                Arrays.copyOfRange(packet, 2, packet.length - 1)));
+                                Arrays.copyOfRange(packet, 2, packet.length - 1)),request == Util.OP.RRQ);
                     }
                     send(packet);
                 }

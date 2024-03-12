@@ -120,7 +120,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
             openFile.setReadable(true);
             openFile.setReadOnly();
             byte[] bCastPacket = Util.concurArrays(new byte[]{0, 9, 1}, openFile.getName().getBytes());
-            bCast(bCastPacket);
+            //bCast(bCastPacket);
             openFile = null;
         }
         return AckRQ(new byte[]{data[4], data[5]});
@@ -128,15 +128,17 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
 
     private byte[] AckRQ(byte[] lastACK) {
         if (message == null) return null;
-        short currentPart = (short) (Util.byteHexArrayToShort(lastACK) + (short) 1);
+        short currentPart = Util.convertBytesToShort(lastACK[0], lastACK[1]);
+        currentPart++;
         byte[] currentMessage = message;
         if (Util.isLastPart(message, currentPart)) message = null;
         return Util.createDataPacket(currentPart, currentMessage);
     }
 
     private byte[] dirRQ(byte[] data) {
-        File directory = new File("Files");
-        //File directory = new File("C:\\Files");
+        //String FilesPath = System.getProperty("user.dir") + "\\server\\Files";
+        String FilesPath = "Files";
+        File directory = new File(FilesPath);
         File[] files = directory.listFiles();
         LinkedList<Byte> fileNamesList = new LinkedList<>();
         if (files != null) {
@@ -178,8 +180,8 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
         String filename = new String(data);
         if (!Util.getFile(filename).delete())
             return Util.getError(new byte[]{0, 1});
-        bCast(Util.concurArrays(new byte[]{0, 9, 0}, data));
-        return null;
+        //bCast(Util.concurArrays(new byte[]{0, 9, 0}, data));
+        return new byte[]{0,4,0,0};
     }
 
     private void bCast(byte[] message) {

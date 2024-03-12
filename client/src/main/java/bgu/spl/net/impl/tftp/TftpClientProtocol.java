@@ -3,10 +3,7 @@ package bgu.spl.net.impl.tftp;
 import bgu.spl.net.api.MessagingProtocol;
 import bgu.spl.net.impl.Util;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -52,16 +49,16 @@ public class TftpClientProtocol implements MessagingProtocol<byte[]> {
                             requestedFile.setReadable(false);
                         }
                         BufferedWriter writer =
-                                new BufferedWriter(new FileWriter(requestedFile.getAbsoluteFile()));
+                                new BufferedWriter(new FileWriter(requestedFile.getAbsoluteFile(),true));
                         byte[] onlyData = Arrays.copyOfRange(answer,6,answer.length);
                         // Write content to the file
-                        writer.write(Arrays.toString(onlyData));
+                        writer.write(new String(onlyData));
                         // Ensure content is flushed to the file
                         writer.flush();
                         if (onlyData.length < 512) {
                             requestedFile.setReadable(true);
                             requestedFile.setReadOnly();
-                            System.out.println(requestedFile.getName() + " added succesfully");
+                            System.out.println(requestedFile.getName() + " added successfully");
                             requestedFile = null;
                         }
                     } catch (IOException ignored) {}
@@ -76,13 +73,21 @@ public class TftpClientProtocol implements MessagingProtocol<byte[]> {
                 if (messageToSend == null) {
                     recievedAnswer = true;
                     if (request == Util.OP.DISC) terminate=true;
-                    else if(request == Util.OP.WRQ) System.out.println("finished uploading file");
-                    else if(request == Util.OP.LOGRQ) System.out.println("logged in succesfully");
+                    else if(request == Util.OP.LOGRQ) System.out.println("logged in successfully");
+                    else if(request == Util.OP.WRQ){
+                        if(messageToSend==null){
+                            System.out.println("finished uploading file");
+                            break;
+                        }
+
+                    }
+
                     request = Util.OP.None;
                     break;
                 }
-                short currentPart = (short)(Util.byteHexArrayToShort(new byte[]{answer[2],answer[3]}) + 1);
-                byte[] currentMessage = Util.getPartArray(messageToSend, currentPart);
+                short currentPart = Util.convertBytesToShort(answer[2],answer[3]);
+                currentPart++;
+                byte[] currentMessage = messageToSend;
                 if (Util.isLastPart(messageToSend, currentPart)) messageToSend = null;
                 result = Util.createDataPacket(currentPart, currentMessage);
                 break;
@@ -107,9 +112,23 @@ public class TftpClientProtocol implements MessagingProtocol<byte[]> {
     public void inform(Util.OP request){
         this.request = request;
     }
-    public void inform(String nameOfFileRequested){
-        requestedFile = Util.getFile(nameOfFileRequested);
-        if(requestedFile.exists()) requestedFile.delete();
+    public void inform(String fileName, boolean read){
+        if (read){
+            requestedFile = Util.getFile(fileName);
+            if(requestedFile.exists()) requestedFile.delete();
+        }
+        else try {
+            File file = Util.getFile(fileName);
+            if (!file.exists()) return;
+            BufferedReader reader = new BufferedReader(new FileReader(file.getAbsoluteFile()));
+            StringBuilder content = new StringBuilder();
+            String line;
+            // Read each line from the file and append it to the content string
+            while ((line = reader.readLine()) != null) {
+                content.append(line).append("\n");
+            }
+            messageToSend = content.toString().getBytes();
+        }catch (Exception ignored){}
     }
 
 }
