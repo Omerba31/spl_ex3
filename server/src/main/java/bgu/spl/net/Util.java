@@ -3,6 +3,7 @@ package bgu.spl.net;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 public class Util {
     public static int MAX_PACKET_LENGTH = 512;
@@ -29,13 +30,26 @@ public class Util {
     }
 
     public static byte[] getPartArray(byte[] src, short blockNumber) { //todo observe this function - provide errors
-        //blockNumber--;
+        /*//blockNumber--;
         int copyLength = MAX_PACKET_LENGTH;
         // for last blockNumber \ src.length < maxLength - we copy only the appropriate size.
-        if (!(src.length - (MAX_PACKET_LENGTH * blockNumber) > MAX_PACKET_LENGTH))
-            copyLength = src.length - MAX_PACKET_LENGTH * blockNumber;
+        if ((src.length - (MAX_PACKET_LENGTH * blockNumber) <= MAX_PACKET_LENGTH))
+            copyLength = MAX_PACKET_LENGTH - Math.abs(src.length - MAX_PACKET_LENGTH * blockNumber);
         byte[] retByte = new byte[copyLength];
         System.arraycopy(src, blockNumber * MAX_PACKET_LENGTH, retByte, 0, copyLength);
+        return retByte;*/
+        //blockNumber--;
+
+        int numOfBlocksToRemove = blockNumber - 1;
+        int copyLength = src.length - (MAX_PACKET_LENGTH * numOfBlocksToRemove);
+        if (copyLength < 0)
+            throw new NoSuchElementException("block number: " + blockNumber + " doesn't exist");
+        if (copyLength == 0) // for check
+            System.out.println("empty packet");
+        if (copyLength > MAX_PACKET_LENGTH) // NOT legal sized packet
+            copyLength = MAX_PACKET_LENGTH;
+        byte[] retByte = new byte[copyLength];
+        System.arraycopy(src, numOfBlocksToRemove * MAX_PACKET_LENGTH, retByte, 0, copyLength);
         return retByte;
     }
 
@@ -46,18 +60,19 @@ public class Util {
         }
         return Short.parseShort(sb.toString());
     }
-    public static byte[] convertShortToByteArray(short s){
-        return new byte []{(byte)((s >> 8) & 0xFF), (byte)(s & 0xff)};
+
+    public static byte[] convertShortToByteArray(short s) {
+        return new byte[]{(byte) ((s >> 8) & 0xFF), (byte) (s & 0xff)};
     }
 
-    public static short convertBytesToShort(byte byte1,byte byte2){
+    public static short convertBytesToShort(byte byte1, byte byte2) {
         return (short) (((byte1 & 0xFF) << 8) | (byte2 & 0xFF));
     }
 
     public static byte[] createDataPacket(short blockNumber, byte[] message) {
-        byte[] info = concurArrays(convertShortToByteArray((short)message.length),
+        byte[] info = concurArrays(convertShortToByteArray((short) message.length),
                 convertShortToByteArray(blockNumber));
-        info = concurArrays(new byte[]{0, 3},info);
+        info = concurArrays(new byte[]{0, 3}, info);
         byte[] data = getPartArray(message, blockNumber);
         return Util.concurArrays(info, data);
     }
@@ -79,14 +94,13 @@ public class Util {
         return retByte;
     }
 
-    public static boolean isFileExist(String filename) {
+/*    public static boolean isFileExist(String filename) {
         File directory = new File("Files");
         File file = new File(directory, filename);
         return file.exists();
-    }
+    }*/
 
     /**
-     *
      * @param fileName - name of the file to get
      * @return existing file if there is a file with 'fileName', else - some empty file which can be created
      */
@@ -130,7 +144,8 @@ public class Util {
         }
         return Util.addZero(Util.concurArrays(error, errorMessage.getBytes()));
     }
-    public static void printHexBytes(byte[] arr){
+
+    public static void printHexBytes(byte[] arr) {
         for (byte b : arr) {
             System.out.print(String.format("%02X ", b));
         }

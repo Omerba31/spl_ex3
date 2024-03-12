@@ -69,7 +69,9 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
     }
 
     private byte[] RRQ(byte[] filename) throws Exception {
-        File file = Util.getFile(new String(filename));
+        //File file = Util.getFile(new String(filename));
+        File directory = new File("Files");
+        File file = new File(directory, new String(filename));
         if (!file.exists()) return Util.getError(new byte[]{0, 1});
         BufferedReader reader = new BufferedReader(new FileReader(file.getAbsoluteFile()));
         StringBuilder content = new StringBuilder();
@@ -134,6 +136,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
 
     private byte[] dirRQ(byte[] data) {
         File directory = new File("Files");
+        //File directory = new File("C:\\Files");
         File[] files = directory.listFiles();
         LinkedList<Byte> fileNamesList = new LinkedList<>();
         if (files != null) {
