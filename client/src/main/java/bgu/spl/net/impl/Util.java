@@ -46,18 +46,19 @@ public class Util {
         }
         return Short.parseShort(sb.toString());
     }
-    public static byte[] convertShortToByteArray(short s){
-        return new byte []{(byte)((s >> 8) & 0xFF), (byte)(s & 0xff)};
+
+    public static byte[] convertShortToByteArray(short s) {
+        return new byte[]{(byte) ((s >> 8) & 0xFF), (byte) (s & 0xff)};
     }
 
-    public static short convertBytesToShort(byte byte1,byte byte2){
+    public static short convertBytesToShort(byte byte1, byte byte2) {
         return (short) (((byte1 & 0xFF) << 8) | (byte2 & 0xFF));
     }
 
     public static byte[] createDataPacket(short blockNumber, byte[] message) {
-        byte[] info = concurArrays(convertShortToByteArray((short)message.length),
+        byte[] info = concurArrays(convertShortToByteArray((short) message.length),
                 convertShortToByteArray(blockNumber));
-        info = concurArrays(new byte[]{0, 3},info);
+        info = concurArrays(new byte[]{0, 3}, info);
         byte[] data = getPartArray(message, blockNumber);
         return Util.concurArrays(info, data);
     }
@@ -86,7 +87,6 @@ public class Util {
     }
 
     /**
-     *
      * @param fileName - name of the file to get
      * @return existing file if there is a file with 'fileName', else - some empty file which can be created
      */
@@ -130,24 +130,27 @@ public class Util {
         }
         return Util.addZero(Util.concurArrays(error, errorMessage.getBytes()));
     }
-    public static void printHexBytes(byte[] arr){
+
+    public static void printHexBytes(byte[] arr) {
         for (byte b : arr) {
             System.out.print(String.format("%02X ", b));
         }
     }
+
     public static enum OP {None, RRQ, WRQ, DATA, ACK, ERROR, DIRQ, LOGRQ, DELRQ, BCAST, DISC}
-    public static OP getOpByByte(byte n){
-        if(n==0) return OP.None;
-        else if(n==1) return OP.RRQ;
-        else if(n==2) return OP.WRQ;
-        else if(n==3) return OP.DATA;
-        else if(n==4) return OP.ACK;
-        else if(n==5) return OP.ERROR;
-        else if(n==6) return OP.DIRQ;
-        else if(n==7) return OP.LOGRQ;
-        else if(n==8) return OP.DELRQ;
-        else if(n==9) return OP.BCAST;
-        else if(n==0xa) return OP.DISC;
+
+    public static OP getOpByByte(byte n) {
+        if (n == 0) return OP.None;
+        else if (n == 1) return OP.RRQ;
+        else if (n == 2) return OP.WRQ;
+        else if (n == 3) return OP.DATA;
+        else if (n == 4) return OP.ACK;
+        else if (n == 5) return OP.ERROR;
+        else if (n == 6) return OP.DIRQ;
+        else if (n == 7) return OP.LOGRQ;
+        else if (n == 8) return OP.DELRQ;
+        else if (n == 9) return OP.BCAST;
+        else if (n == 0xa) return OP.DISC;
         throw new RuntimeException("not an OP code");
     }
 }

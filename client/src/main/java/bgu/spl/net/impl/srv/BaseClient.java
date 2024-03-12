@@ -16,7 +16,7 @@ public class BaseClient {
     private final TftpEncoderDecoder encdec;
     private Socket sock;
     boolean terminate;
-    private Scanner scanner;
+    private final Scanner scanner;
     private Thread listeningThread;
     private Thread keyboardTread;
     private BufferedInputStream in;
@@ -44,13 +44,13 @@ public class BaseClient {
             this.in = new BufferedInputStream(new BufferedInputStream(sock.getInputStream()));
             this.out = new BufferedOutputStream(new BufferedOutputStream(sock.getOutputStream()));
             keyboardTread = Thread.currentThread();
-            listeningThread = new Thread(listen(),"listening thread");
+            listeningThread = new Thread(listen(), "listening thread");
             listeningThread.start();
             while (!terminate & !protocol.shouldTerminate()) {
                 System.out.println("please type message to the server");
                 boolean correctInput = false;
                 byte[] packet = null;
-                while (!correctInput) {
+                while (!correctInput & !terminate) {
                     String order = scanner.nextLine();
                     protocol.recievedAnswer = false;
                     try {
@@ -64,8 +64,10 @@ public class BaseClient {
                 if (packet != null) {
                     Util.OP request = Util.getOpByByte(packet[1]);
                     protocol.inform(request);
-                    if (request == Util.OP.RRQ) protocol.inform(new String(
-                            Arrays.copyOfRange(packet,2,packet.length-1)));
+                    if (request == Util.OP.RRQ) {
+                        protocol.inform(new String(
+                                Arrays.copyOfRange(packet, 2, packet.length - 1)));
+                    }
                     send(packet);
                 }
                 synchronized (this) {
@@ -86,13 +88,13 @@ public class BaseClient {
     private Runnable listen() {
         return () -> {
             System.out.println("started listening");
-            int read=0;
+            int read;
             try {
                 while (!protocol.shouldTerminate() && !terminate && (read = in.read()) >= 0) {
 
                     byte nextByte = (byte) read;
                     byte[] answer = encdec.decodeNextByte(nextByte);
-                    if (answer==null) continue;
+                    if (answer == null) continue;
                     byte[] result = protocol.process(answer);
                     if (result != null) send(result);
                     if (protocol.recievedAnswer) {
@@ -101,7 +103,7 @@ public class BaseClient {
                         }
                     }
                 }
-            }catch(IOException e){
+            } catch (IOException e) {
                 terminate = true;
                 System.out.println("server probably down");
                 protocol.recievedAnswer = true;

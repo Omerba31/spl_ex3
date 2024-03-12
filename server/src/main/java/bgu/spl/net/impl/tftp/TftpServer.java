@@ -8,7 +8,8 @@ public class TftpServer {
         // you can use any server...
         Server.threadPerClient(
                 7777, //port
-                () -> new TftpProtocol(0, new TftpConnections()), //protocol factory
+                //() -> new TftpProtocol(0, new TftpConnections()), //protocol factory
+                TftpProtocol::new,
                 TftpEncoderDecoder::new //message encoder decoder factory
         ).serve();
 

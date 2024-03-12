@@ -24,9 +24,5 @@ public class TftpClient {
         BaseClient baseClient = new BaseClient(7777,
                 new TftpClientProtocol(), new TftpEncoderDecoder());
         baseClient.consume(args[0]);
-
-        /*String s = "ofir";
-        byte[] arr = s.getBytes();
-        System.out.println(arr);*/
     }
 }

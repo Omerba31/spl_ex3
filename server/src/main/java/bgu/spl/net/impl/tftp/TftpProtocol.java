@@ -13,19 +13,19 @@ import java.util.LinkedList;
 public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
 
     private boolean shouldTerminate = false;
-    private TftpConnections<byte[]> connections;
+    private volatile TftpConnections<byte[]> connections;
     private int ownerId;
     private boolean isConnected;
     private byte[] message = null;
     private File openFile = null;
 
-    public TftpProtocol(int connectionId, Connections<byte[]> connections) {
+    /*public TftpProtocol(int connectionId, Connections<byte[]> connections) {
         start(connectionId, connections);
-    }
+    }*/
 
     @Override
     public void start(int connectionId, Connections<byte[]> connections) {
-        this.connections = (TftpConnections<byte[]>)connections;
+        this.connections = (TftpConnections<byte[]>) connections;
         this.ownerId = connectionId;
         this.isConnected = false;
     }
@@ -35,7 +35,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
         byte type = message[1];
         byte[] data = new byte[message.length - 2];
         System.arraycopy(message, 2, data, 0, data.length);
-        if (data.length>0 && data[data.length - 1] == 0) data = Util.cutFromEnd(data, 1);
+        if (data.length > 0 && data[data.length - 1] == 0) data = Util.cutFromEnd(data, 1);
         if (!isConnected & type != 7) return Util.getError(new byte[]{0, 6});
         switch (type) {
             case 1:
@@ -126,7 +126,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
 
     private byte[] AckRQ(byte[] lastACK) {
         if (message == null) return null;
-        short currentPart = (short)(Util.byteHexArrayToShort(lastACK) + (short)1);
+        short currentPart = (short) (Util.byteHexArrayToShort(lastACK) + (short) 1);
         byte[] currentMessage = Util.getPartArray(message, currentPart);
         if (Util.isLastPart(message, currentPart)) message = null;
         return Util.createDataPacket(currentPart, currentMessage);
@@ -154,11 +154,13 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
     private byte[] LogRQ(byte[] message) {
         String userName = new String(message);
         int connectionId = userName.hashCode();
-        byte[] cpMessage = null;
+        if (connections == null) connections = new TftpConnections<>();
+        start(connectionId, connections);
+        byte[] cpMessage;
         byte[] opCode;
         if (connections.canConnect(ownerId)) {
             BlockingConnectionHandler<byte[]> blockingConnectionHandler = new BlockingConnectionHandler<>(
-                    new Socket(), new TftpEncoderDecoder(), new TftpProtocol(connectionId, connections));
+                    new Socket(), new TftpEncoderDecoder(), this);
             //was: connections.connect(connectionId, blockingConnectionHandler);
             connections.connect(ownerId, blockingConnectionHandler);
             opCode = new byte[]{0, 4};
