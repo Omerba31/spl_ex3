@@ -87,7 +87,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
     }
 
     private byte[] WRQ(byte[] fileName) throws IOException {
-        String stringFileName = Arrays.toString(fileName);
+        String stringFileName = new String(fileName);
         File file = Util.getFile(stringFileName);
         try {
             if (!file.createNewFile())
@@ -108,9 +108,9 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
         System.arraycopy(data, 4, onlyData, 0, onlyData.length);
 
         try (BufferedWriter writer =
-                     new BufferedWriter(new FileWriter(openFile.getAbsoluteFile()))) {
+                     new BufferedWriter(new FileWriter(openFile.getAbsoluteFile(),true))) {
             // Write content to the file
-            writer.write(Arrays.toString(onlyData));
+            writer.write(new String(onlyData));
             // Ensure content is flushed to the file
             writer.flush();
         } catch (IOException e) {
@@ -175,10 +175,10 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
     }
 
     private byte[] delRQ(byte[] data) {
-        String filename = Arrays.toString(data);
+        String filename = new String(data);
         if (!Util.getFile(filename).delete())
             return Util.getError(new byte[]{0, 1});
-        bCast(Util.concurArrays(new byte[]{0, 9, 0}, filename.getBytes()));
+        bCast(Util.concurArrays(new byte[]{0, 9, 0}, data));
         return null;
     }
 

@@ -95,9 +95,14 @@ public class Util {
      * @return existing file if there is a file with 'fileName', else - some empty file which can be created
      */
     public static File getFile(String fileName) {
-        File directory = new File("Files");
+        String FilesPath = System.getProperty("user.dir") + "\\server\\Files";
+        File directory = new File(FilesPath);
         return new File(directory, fileName);
     }
+    /*public static File getFile(String fileName) {
+        File directory = new File("Files");
+        return new File(directory, fileName);
+    }*/
 
     public static byte[] getError(byte[] errorType) {
         if (errorType[0] != 0) throw new IllegalArgumentException("Illegal error type inserted!");
