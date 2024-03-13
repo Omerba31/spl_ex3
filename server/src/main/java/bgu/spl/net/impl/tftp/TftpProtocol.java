@@ -4,6 +4,7 @@ import bgu.spl.net.Util;
 import bgu.spl.net.api.BidiMessagingProtocol;
 import bgu.spl.net.srv.BlockingConnectionHandler;
 import bgu.spl.net.srv.Connections;
+
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.Files;
@@ -111,7 +112,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
         System.arraycopy(data, 4, onlyData, 0, onlyData.length);
 
         try (BufferedWriter writer =
-                     new BufferedWriter(new FileWriter(openFile.getAbsoluteFile(),true))) {
+                     new BufferedWriter(new FileWriter(openFile.getAbsoluteFile(), true))) {
             // Write content to the file
             writer.write(new String(onlyData));
             // Ensure content is flushed to the file
@@ -122,11 +123,11 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
         if (onlyData.length < 512) {
             openFile.setReadable(true);
             openFile.setReadOnly();
-            byte[] bCastPacket = Util.concurArrays(new byte[]{0, 9, 1}, openFile.getName().getBytes());
-            //bCast(bCastPacket);
+            bCast(Util.addZero(
+                    Util.concurArrays(new byte[]{0, 9, 1}, openFile.getName().getBytes())));
             openFile = null;
         }
-        return new byte[]{0,4,data[2], data[3]};
+        return new byte[]{0, 4, data[2], data[3]};
     }
 
     private byte[] AckRQ(byte[] lastACK) {
@@ -181,12 +182,11 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
         String filename = new String(data);
         File file = Util.getFile(filename);
 
-        if (Util.fileExists(filename)){
-            Util.getFile(filename).delete();
-            return new byte[]{0,4,0,0};
-        }
-        return Util.getError(new byte[]{0, 1});
-        //bCast(Util.concurArrays(new byte[]{0, 9, 0}, data));
+        if (!Util.fileExists(filename)) return Util.getError(new byte[]{0, 1});
+
+        Util.getFile(filename).delete();
+        bCast(Util.addZero(Util.concurArrays(new byte[]{0, 9, 0}, data)));
+        return new byte[]{0, 4, 0, 0};
     }
 
     private void bCast(byte[] message) {

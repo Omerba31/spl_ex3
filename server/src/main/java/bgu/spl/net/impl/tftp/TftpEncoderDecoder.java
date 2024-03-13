@@ -25,7 +25,7 @@ public class TftpEncoderDecoder implements MessageEncoderDecoder<byte[]> {
         switch (op) { //this order is important!
             case 3:
                 // data packet
-                if(bytes.size()>=4 && bytes.size() - 6 == Util.convertBytesToShort(bytes.get(2),bytes.get(3)))
+                if (bytes.size() >= 4 && bytes.size() - 6 == Util.convertBytesToShort(bytes.get(2), bytes.get(3)))
                     retBytes = Util.convertListToArray(bytes);
                 break;
             case 4: //ACK packet
@@ -35,10 +35,14 @@ public class TftpEncoderDecoder implements MessageEncoderDecoder<byte[]> {
             case 0xa: //DISC packet
                 retBytes = Util.convertListToArray(bytes);
                 break;
+            case 9: // bCast
+                if (bytes.size() >= 4 && bytes.get(bytes.size() - 1) == 0)
+                    retBytes = Util.convertListToArray(bytes);
+                break;
             case 5:
-                if (bytes.size()<5) break;
+                if (bytes.size() < 5) break;
             default:
-                if (bytes.size() - 6 == 512 | bytes.get(bytes.size()-1) == 0)
+                if (bytes.size() - 6 == 512 | bytes.get(bytes.size() - 1) == 0)
                     retBytes = Util.convertListToArray(bytes);
                 break;
         }

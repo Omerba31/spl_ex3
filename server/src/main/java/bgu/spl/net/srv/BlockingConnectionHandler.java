@@ -12,9 +12,9 @@ public class BlockingConnectionHandler<T> implements Runnable, ConnectionHandler
 
     private final BidiMessagingProtocol<T> protocol;
     private final MessageEncoderDecoder<T> encdec;
-    private final Socket sock;
-    private BufferedInputStream in;
-    private BufferedOutputStream out;
+    private volatile Socket sock;
+    private volatile BufferedInputStream in;
+    private volatile BufferedOutputStream out;
     private volatile boolean connected = true;
 
     public BlockingConnectionHandler(Socket sock, MessageEncoderDecoder<T> reader, BidiMessagingProtocol<T> protocol) {
