@@ -103,3 +103,4 @@ hs_err_pid*
 # files that can be large:
 /server/Files
 /client/Files
+**/Files/
