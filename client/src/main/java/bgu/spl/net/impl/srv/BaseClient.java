@@ -1,6 +1,6 @@
 package bgu.spl.net.impl.srv;
 
-import bgu.spl.net.impl.Util;
+import bgu.spl.net.Util;
 import bgu.spl.net.impl.tftp.TftpClientProtocol;
 import bgu.spl.net.impl.tftp.TftpEncoderDecoder;
 
@@ -55,6 +55,7 @@ public class BaseClient {
                     protocol.recievedAnswer = false;
                     try {
                         packet = encdec.encode(order);
+                        System.out.println(packet);
                         correctInput = true;
                     } catch (IllegalArgumentException e) {
                         correctInput = false;
@@ -64,11 +65,27 @@ public class BaseClient {
                 if (packet != null) {
                     Util.OP request = Util.getOpByByte(packet[1]);
                     protocol.inform(request);
-                    if (request == Util.OP.RRQ | request == Util.OP.WRQ) {
-                        protocol.inform(new String(
-                                Arrays.copyOfRange(packet, 2, packet.length - 1)),request == Util.OP.RRQ);
+                    try{
+                        if (request == Util.OP.WRQ) {
+                            if (!Util.fileExists(new String(Arrays.copyOfRange(packet, 2, packet.length-1)))) {
+                                protocol.recievedAnswer = true;
+                                System.out.println("Given file isn't existing");
+                            }
+                            else{
+                                protocol.inform(new String(
+                                    Arrays.copyOfRange(packet, 2, packet.length - 1)),false);
+                            
+                                send(packet);
+                            }
+                        }
+                        else if(request == Util.OP.RRQ){
+                            protocol.inform(new String(
+                                    Arrays.copyOfRange(packet, 2, packet.length - 1)),request == Util.OP.RRQ);
+                        }
                     }
-                    send(packet);
+                    catch (RuntimeException r){
+                        
+                    }
                 }
                 synchronized (this) {
                     try {
@@ -82,6 +99,7 @@ public class BaseClient {
             sock.close();
             System.out.println("client terminated");
         } catch (Exception ex) {
+            
         }
     }
 
@@ -103,6 +121,7 @@ public class BaseClient {
                         }
                     }
                 }
+                keyboardTread.interrupt();
             } catch (IOException e) {
                 terminate = true;
                 System.out.println("server probably down");

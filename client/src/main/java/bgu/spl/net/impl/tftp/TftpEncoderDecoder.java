@@ -1,7 +1,7 @@
 package bgu.spl.net.impl.tftp;
 
+import bgu.spl.net.Util;
 import bgu.spl.net.api.MessageEncoderDecoder;
-import bgu.spl.net.impl.Util;
 
 import java.util.LinkedList;
 import java.util.List;

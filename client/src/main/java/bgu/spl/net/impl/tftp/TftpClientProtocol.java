@@ -1,9 +1,10 @@
 package bgu.spl.net.impl.tftp;
 
+import bgu.spl.net.Util;
 import bgu.spl.net.api.MessagingProtocol;
-import bgu.spl.net.impl.Util;
 
 import java.io.*;
+import java.nio.file.NoSuchFileException;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -28,6 +29,7 @@ public class TftpClientProtocol implements MessagingProtocol<byte[]> {
     @Override
     public byte[] process(byte[] answer) {
         byte[] result = null;
+        System.out.println(answer);
         switch (answer[1]) {
             case 3: //data packet
                 if (request == Util.OP.DIRQ) {
@@ -44,12 +46,14 @@ public class TftpClientProtocol implements MessagingProtocol<byte[]> {
                     }
                 } else if (request == Util.OP.RRQ) {
                     try {
+                        boolean append = true;
                         if (!requestedFile.exists()) {
                             requestedFile.createNewFile(); // if it exists does nothing
                             requestedFile.setReadable(false);
                         }
+                        else if(Util.convertBytesToShort(answer[2], answer[3])==0) append = false;
                         BufferedWriter writer =
-                                new BufferedWriter(new FileWriter(requestedFile.getAbsoluteFile(), true));
+                                new BufferedWriter(new FileWriter(requestedFile.getAbsoluteFile(), append));
                         byte[] onlyData = Arrays.copyOfRange(answer, 6, answer.length);
                         // Write content to the file
                         writer.write(new String(onlyData));
@@ -57,7 +61,7 @@ public class TftpClientProtocol implements MessagingProtocol<byte[]> {
                         writer.flush();
                         if (onlyData.length < 512) {
                             requestedFile.setReadable(true);
-                            requestedFile.setReadOnly();
+                            //requestedFile.setReadOnly();
                             System.out.println(requestedFile.getName() + " added successfully");
                             requestedFile = null;
                         }
@@ -115,11 +119,11 @@ public class TftpClientProtocol implements MessagingProtocol<byte[]> {
 
     public void inform(String fileName, boolean read) {
         if (read) {
+            if (Util.fileExists(fileName)) Util.getFile(fileName).delete();
             requestedFile = Util.getFile(fileName);
-            if (requestedFile.exists()) requestedFile.delete();
         } else try {
+            if (!Util.fileExists(fileName)) throw new RuntimeException("doesn't have file"); ////
             File file = Util.getFile(fileName);
-            if (!Util.fileExists(fileName)) throw new RuntimeException("doesn't have file");
             BufferedReader reader = new BufferedReader(new FileReader(file.getAbsoluteFile()));
             StringBuilder content = new StringBuilder();
             String line;
