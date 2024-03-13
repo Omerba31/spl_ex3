@@ -79,7 +79,6 @@ public class TftpClientProtocol implements MessagingProtocol<byte[]> {
                             System.out.println("finished uploading file");
                             break;
                         }
-
                     }
 
                     request = Util.OP.None;
@@ -96,9 +95,10 @@ public class TftpClientProtocol implements MessagingProtocol<byte[]> {
                         Arrays.copyOfRange(answer, 4, answer.length - 1)));
                 recievedAnswer = true;
                 break;
-            case 9: //bcast
-                String status = (answer[2] == 1) ? "add" : "del";
-                System.out.println("BCAST" + status + new String(Util.cutFromEnd(answer, 1)));
+            case 9: //bCast
+                String status = (answer[2] == 1) ? "add - " : "del - ";
+                System.out.println("bCast: " + status +
+                        new String(Arrays.copyOfRange(answer, 3, answer.length - 1)));
                 break;
         }
         return result;

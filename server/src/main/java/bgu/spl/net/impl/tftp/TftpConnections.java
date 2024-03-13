@@ -6,24 +6,25 @@ import bgu.spl.net.srv.Connections;
 import java.io.IOException;
 import java.nio.channels.AlreadyConnectedException;
 import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class TftpConnections<T> implements Connections<T> {
 
     HashMap<Integer, ConnectionHandler<T>> activeUserHashMap = new HashMap<>();
 
-    public boolean canConnect(int connectionId) {
+    public synchronized boolean canConnect(int connectionId) {
         return !activeUserHashMap.containsKey(connectionId);
     }
 
     @Override
-    public void connect(int connectionId, ConnectionHandler<T> handler) {
+    public synchronized void connect(int connectionId, ConnectionHandler<T> handler) {
         if (!canConnect(connectionId))
             throw new AlreadyConnectedException();
         activeUserHashMap.put(connectionId, handler);
     }
 
     @Override
-    public boolean send(int connectionId, T msg) {
+    public synchronized boolean send(int connectionId, T msg) {
         if (!activeUserHashMap.containsKey(connectionId))
             return false;
         activeUserHashMap.get(connectionId).send(msg);
@@ -31,11 +32,11 @@ public class TftpConnections<T> implements Connections<T> {
     }
 
     @Override
-    public void disconnect(int connectionId) {
+    public synchronized void disconnect(int connectionId) {
         activeUserHashMap.remove(connectionId);
     }
 
-    public void bCast(T msg, int ID) {
+    public synchronized void bCast(T msg, int ID) {
         for (int connectionID : activeUserHashMap.keySet()) {
             if (connectionID == ID) continue;
             activeUserHashMap.get(connectionID).send(msg);

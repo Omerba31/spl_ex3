@@ -13,6 +13,10 @@ public class TftpEncoderDecoder implements MessageEncoderDecoder<String> {
     public byte[] decodeNextByte(byte nextByte) {
         bytes.add(nextByte);
         if (bytes.size() <= 1) return null;
+        if (bytes.size() == 2 & bytes.get(1) == 0) {
+            bytes.remove(1);
+            return null;
+        }
         byte[] retBytes = null;
         int op = bytes.get(1);
 
@@ -31,6 +35,10 @@ public class TftpEncoderDecoder implements MessageEncoderDecoder<String> {
             case 6:
             case 0xa:
                 retBytes = Util.convertListToArray(bytes);
+                break;
+            case 9: // bCast
+                if (bytes.size() >= 4 && bytes.get(bytes.size() - 1) == 0)
+                    retBytes = Util.convertListToArray(bytes);
                 break;
             case 5:
                 if (bytes.size() < 5) break;

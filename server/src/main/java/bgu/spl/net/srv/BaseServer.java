@@ -44,11 +44,11 @@ public abstract class BaseServer<T> implements Server<T> {
 
                 Socket clientSock = serverSock.accept();
                 BidiMessagingProtocol<T> protocol = protocolFactory.get();
-                protocol.start(connectionsCounter, connections);
                 BlockingConnectionHandler<T> handler = new BlockingConnectionHandler<>(
                         clientSock,
                         encdecFactory.get(),
                         protocol);
+                protocol.start(connectionsCounter, connections, handler);
                 connectionsCounter++;
                 execute(handler);
             }

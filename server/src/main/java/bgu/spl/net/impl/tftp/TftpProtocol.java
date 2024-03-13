@@ -5,13 +5,7 @@ import bgu.spl.net.api.BidiMessagingProtocol;
 import bgu.spl.net.srv.BlockingConnectionHandler;
 import bgu.spl.net.srv.Connections;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.Files;
-
 import java.io.*;
-import java.net.Socket;
-import java.util.Arrays;
 import java.util.LinkedList;
 
 public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
@@ -22,16 +16,19 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
     private boolean isConnected;
     private byte[] message = null;
     private File openFile = null;
+    private BlockingConnectionHandler handler;
+
 
     /*public TftpProtocol(int connectionId, Connections<byte[]> connections) {
         start(connectionId, connections);
     }*/
 
     @Override
-    public void start(int connectionId, Connections<byte[]> connections) {
+    public void start(int connectionId, Connections<byte[]> connections, BlockingConnectionHandler<byte[]> handler) {
         this.connections = (TftpConnections<byte[]>) connections;
         this.ownerId = connectionId;
         this.isConnected = false;
+        this.handler = handler;
     }
 
     @Override
@@ -40,7 +37,8 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
         byte[] data = new byte[message.length - 2];
         System.arraycopy(message, 2, data, 0, data.length);
         if (data.length > 0 && data[data.length - 1] == 0) data = Util.cutFromEnd(data, 1);
-        //if (!isConnected & type != 7) return Util.getError(new byte[]{0, 6});
+        if (!isConnected & type != 7) return Util.getError(new byte[]{0, 6});
+        if (isConnected & type == 7) return Util.getError(new byte[]{0, 7});
         switch (type) {
             case 1:
                 return RRQ(data);
@@ -158,24 +156,24 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
         return Util.createDataPacket((short) 1, retByte);
     }
 
-    private byte[] LogRQ(byte[] message) {
+    private byte[] LogRQ(byte[] message) throws IOException {
         String userName = new String(message);
-        int connectionId = userName.hashCode();
+        ownerId = userName.hashCode();
         byte[] cpMessage;
         byte[] opCode;
         if (connections.canConnect(ownerId)) {
-            BlockingConnectionHandler<byte[]> blockingConnectionHandler = new BlockingConnectionHandler<>(
-                    new Socket(), new TftpEncoderDecoder(), this);
+            //BlockingConnectionHandler<byte[]> blockingConnectionHandler = new BlockingConnectionHandler<>(
+            //new Socket(), new TftpEncoderDecoder(), this);
             //was: connections.connect(connectionId, blockingConnectionHandler);
-            connections.connect(ownerId, blockingConnectionHandler);
+            connections.connect(ownerId, handler);
             opCode = new byte[]{0, 4};
             cpMessage = new byte[]{0, 0};
             isConnected = true;
         } else {
-            opCode = new byte[]{0, 5, 0, 7};
-            cpMessage = "User already logged in – Login username already connected.".getBytes();
+            return Util.getError(new byte[]{0, 7});
+
         }
-        return Util.concurArrays(opCode, cpMessage);
+        return Util.addZero(Util.concurArrays(opCode, cpMessage));
     }
 
     private byte[] delRQ(byte[] data) {
@@ -185,7 +183,10 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
         if (!Util.fileExists(filename)) return Util.getError(new byte[]{0, 1});
 
         Util.getFile(filename).delete();
-        bCast(Util.addZero(Util.concurArrays(new byte[]{0, 9, 0}, data)));
+        bCast(Util.addZero(
+                Util.concurArrays(new byte[]{0, 9, 0}, data)));
+        /*bCast(Util.addZero(
+                Util.concurArrays(new byte[]{0, 9, 1}, openFile.getName().getBytes())));*/
         return new byte[]{0, 4, 0, 0};
     }
 
