@@ -103,7 +103,8 @@ public class Util {
 
     public static boolean fileExists(String filename) {
         File directory = getFilesDirectory();
-        return directory.listFiles((dir, name) -> name.equals(filename)).length > 0;
+        File[] arr = directory.listFiles((dir, name) -> name.equals(filename));
+        return arr!=null && arr.length > 0;
     }
 
     public static byte[] getError(byte[] errorType) {

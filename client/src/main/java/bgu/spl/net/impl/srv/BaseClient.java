@@ -65,27 +65,26 @@ public class BaseClient {
                 if (packet != null) {
                     Util.OP request = Util.getOpByByte(packet[1]);
                     protocol.inform(request);
-                    try{
-                        if (request == Util.OP.WRQ) {
-                            if (!Util.fileExists(new String(Arrays.copyOfRange(packet, 2, packet.length-1)))) {
-                                protocol.recievedAnswer = true;
-                                System.out.println("Given file isn't existing");
-                            }
-                            else{
-                                protocol.inform(new String(
-                                    Arrays.copyOfRange(packet, 2, packet.length - 1)),false);
-                            
-                                send(packet);
-                            }
+                    if (request == Util.OP.WRQ) {
+                        if (!Util.fileExists(new String(Arrays.copyOfRange(packet, 2, packet.length-1)))) {
+                            protocol.recievedAnswer = true;
+                            System.out.println("Given file isn't existing");
                         }
-                        else if(request == Util.OP.RRQ){
+                        else{
                             protocol.inform(new String(
-                                    Arrays.copyOfRange(packet, 2, packet.length - 1)),request == Util.OP.RRQ);
+                                Arrays.copyOfRange(packet, 2, packet.length - 1)),false);
+                        
+                            send(packet);
                         }
                     }
-                    catch (RuntimeException r){
-                        
+                    else if(request == Util.OP.RRQ){
+                        protocol.inform(new String(
+                                Arrays.copyOfRange(packet, 2, packet.length - 1)),request == Util.OP.RRQ);
+                                send(packet);
                     }
+                    else 
+                        send(packet);
+
                 }
                 synchronized (this) {
                     try {
