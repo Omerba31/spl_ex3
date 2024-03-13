@@ -91,19 +91,14 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
 
     private byte[] WRQ(byte[] fileName) throws IOException {
         String stringFileName = new String(fileName);
-        String FilesPath = System.getProperty("user.dir") + "\\server\\Files";
-        //String FilesPath = "Files";
-        Path directory = Paths.get(FilesPath);
-        Path filePath = directory.resolve(stringFileName);
+        File file = Util.getFile(stringFileName);
         try {
-            Files.createFile(filePath);
-            this.openFile = new File(Files.createFile(filePath).toString());
-            /*if (!file.createFile())
+            if (!file.createNewFile())
                 return Util.getError(new byte[]{0, 2}); //ERROR - FILE ALREADY EXISTS
             else {
                 file.setReadable(false);
                 openFile = file;
-            }*/
+            }
         } catch (IOException e) {
             throw new IOException("can't create file");
         }
@@ -144,9 +139,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
     }
 
     private byte[] dirRQ(byte[] data) {
-        //String FilesPath = System.getProperty("user.dir") + "\\server\\Files";
-        String FilesPath = "Files";
-        File directory = new File(FilesPath);
+        File directory = Util.getFilesDirectory();
         File[] files = directory.listFiles();
         LinkedList<Byte> fileNamesList = new LinkedList<>();
         if (files != null) {
@@ -186,10 +179,14 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
 
     private byte[] delRQ(byte[] data) {
         String filename = new String(data);
-        if (!Util.getFile(filename).delete())
-            return Util.getError(new byte[]{0, 1});
+        File file = Util.getFile(filename);
+
+        if (Util.fileExists(filename)){
+            Util.getFile(filename).delete();
+            return new byte[]{0,4,0,0};
+        }
+        return Util.getError(new byte[]{0, 1});
         //bCast(Util.concurArrays(new byte[]{0, 9, 0}, data));
-        return new byte[]{0,4,0,0};
     }
 
     private void bCast(byte[] message) {

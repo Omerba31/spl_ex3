@@ -88,11 +88,22 @@ public class Util {
      * @param fileName - name of the file to get
      * @return existing file if there is a file with 'fileName', else - some empty file which can be created
      */
+    public static File getFilesDirectory() {
+        String FilesPath = System.getProperty("user.dir") + "\\client\\Files";
+        //String FilesPath = "Files";
+        return new File(FilesPath);
+    }
+
     public static File getFile(String fileName) {
-        //String FilesPath = System.getProperty("user.dir") + "\\server\\Files";
-        String FilesPath = "Files";
-        File directory = new File(FilesPath);
-        return new File(directory, fileName);
+        File[] arr = getFilesDirectory().listFiles((dir, name) -> name.equals(fileName));
+        if (arr.length == 0) return new File(getFilesDirectory(), fileName);
+        return arr[0];
+        //return new File(getFilesDirectory(), fileName);
+    }
+
+    public static boolean fileExists(String filename) {
+        File directory = getFilesDirectory();
+        return directory.listFiles((dir, name) -> name.equals(filename)).length > 0;
     }
 
     public static byte[] getError(byte[] errorType) {
@@ -136,6 +147,7 @@ public class Util {
             System.out.print(String.format("%02X ", b));
         }
     }
+
     public static enum OP {None, RRQ, WRQ, DATA, ACK, ERROR, DIRQ, LOGRQ, DELRQ, BCAST, DISC}
 
     public static OP getOpByByte(byte n) {
