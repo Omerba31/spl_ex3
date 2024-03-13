@@ -2,12 +2,10 @@ package bgu.spl.net.impl.tftp;
 
 import bgu.spl.net.api.MessageEncoderDecoder;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
-import bgu.spl.net.Util;
+import bgu.spl.net.UtilServer;
 
 public class TftpEncoderDecoder implements MessageEncoderDecoder<byte[]> {
     private List<Byte> bytes = new LinkedList<>();
@@ -25,25 +23,25 @@ public class TftpEncoderDecoder implements MessageEncoderDecoder<byte[]> {
         switch (op) { //this order is important!
             case 3:
                 // data packet
-                if (bytes.size() >= 4 && bytes.size() - 6 == Util.convertBytesToShort(bytes.get(2), bytes.get(3)))
-                    retBytes = Util.convertListToArray(bytes);
+                if (bytes.size() >= 4 && bytes.size() - 6 == UtilServer.convertBytesToShort(bytes.get(2), bytes.get(3)))
+                    retBytes = UtilServer.convertListToArray(bytes);
                 break;
             case 4: //ACK packet
-                if (bytes.size() == 4) retBytes = Util.convertListToArray(bytes);
+                if (bytes.size() == 4) retBytes = UtilServer.convertListToArray(bytes);
                 break;
             case 6: //DIRQ packet
             case 0xa: //DISC packet
-                retBytes = Util.convertListToArray(bytes);
+                retBytes = UtilServer.convertListToArray(bytes);
                 break;
             case 9: // bCast
                 if (bytes.size() >= 4 && bytes.get(bytes.size() - 1) == 0)
-                    retBytes = Util.convertListToArray(bytes);
+                    retBytes = UtilServer.convertListToArray(bytes);
                 break;
             case 5:
                 if (bytes.size() < 5) break;
             default:
                 if (bytes.size() - 6 == 512 | bytes.get(bytes.size() - 1) == 0)
-                    retBytes = Util.convertListToArray(bytes);
+                    retBytes = UtilServer.convertListToArray(bytes);
                 break;
         }
         if (retBytes != null) bytes.clear();

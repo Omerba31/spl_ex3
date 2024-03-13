@@ -1,11 +1,12 @@
 package bgu.spl.net.impl.tftp;
 
-import bgu.spl.net.Util;
+import bgu.spl.net.UtilServer;
 import bgu.spl.net.api.BidiMessagingProtocol;
 import bgu.spl.net.srv.BlockingConnectionHandler;
 import bgu.spl.net.srv.Connections;
 
 import java.io.*;
+import java.util.Arrays;
 import java.util.LinkedList;
 
 public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
@@ -36,9 +37,9 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
         byte type = message[1];
         byte[] data = new byte[message.length - 2];
         System.arraycopy(message, 2, data, 0, data.length);
-        if (data.length > 0 && data[data.length - 1] == 0) data = Util.cutFromEnd(data, 1);
-        if (!isConnected & type != 7) return Util.getError(new byte[]{0, 6});
-        if (isConnected & type == 7) return Util.getError(new byte[]{0, 7});
+        if (data.length > 0 && data[data.length - 1] == 0) data = UtilServer.cutFromEnd(data, 1);
+        if (!isConnected & type != 7) return UtilServer.getError(new byte[]{0, 6});
+        if (isConnected & type == 7) return UtilServer.getError(new byte[]{0, 7});
         switch (type) {
             case 1:
                 return RRQ(data);
@@ -71,8 +72,8 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
     }
 
     private byte[] RRQ(byte[] filename) throws Exception {
-        File file = Util.getFile(new String(filename));
-        if (!file.exists()) return Util.getError(new byte[]{0, 1});
+        File file = UtilServer.getFile(new String(filename));
+        if (!file.exists()) return UtilServer.getError(new byte[]{0, 1});
         BufferedReader reader = new BufferedReader(new FileReader(file.getAbsoluteFile()));
         StringBuilder content = new StringBuilder();
         String line;
@@ -83,16 +84,16 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
         message = content.toString().getBytes();
         System.out.println(new String(message));
         byte[] currentMessage = message;
-        if (Util.isLastPart(message, 1)) message = null;
-        return Util.createDataPacket((short) 1, currentMessage);
+        if (UtilServer.isLastPart(message, 1)) message = null;
+        return UtilServer.createDataPacket((short) 1, currentMessage);
     }
 
     private byte[] WRQ(byte[] fileName) throws IOException {
         String stringFileName = new String(fileName);
-        File file = Util.getFile(stringFileName);
+        File file = UtilServer.getFile(stringFileName);
         try {
             if (!file.createNewFile())
-                return Util.getError(new byte[]{0, 2}); //ERROR - FILE ALREADY EXISTS
+                return UtilServer.getError(new byte[]{0, 2}); //ERROR - FILE ALREADY EXISTS
             else {
                 file.setReadable(false);
                 openFile = file;
@@ -120,8 +121,8 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
         if (onlyData.length < 512) {
             openFile.setReadable(true);
             openFile.setReadOnly();
-            bCast(Util.addZero(
-                    Util.concurArrays(new byte[]{0, 9, 1}, openFile.getName().getBytes())));
+            bCast(UtilServer.addZero(
+                    UtilServer.concurArrays(new byte[]{0, 9, 1}, openFile.getName().getBytes())));
             openFile = null;
         }
         return new byte[]{0, 4, data[2], data[3]};
@@ -129,15 +130,17 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
 
     private byte[] AckRQ(byte[] lastACK) {
         if (message == null) return null;
-        short currentPart = Util.convertBytesToShort(lastACK[0], lastACK[1]);
+        short currentPart = UtilServer.convertBytesToShort(lastACK[0], lastACK[1]);
         currentPart++;
         byte[] currentMessage = message;
-        if (Util.isLastPart(message, currentPart)) message = null;
-        return Util.createDataPacket(currentPart, currentMessage);
+        if (UtilServer.isLastPart(message, currentPart)) message = null;
+        byte [] ACK = UtilServer.createDataPacket(currentPart, currentMessage);
+        System.out.println(new String(ACK));
+        return ACK;
     }
 
     private byte[] dirRQ(byte[] data) {
-        File directory = Util.getFilesDirectory();
+        File directory = UtilServer.getFilesDirectory();
         File[] files = directory.listFiles();
         LinkedList<Byte> fileNamesList = new LinkedList<>();
         if (files != null) {
@@ -149,10 +152,10 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
             }
             if (!fileNamesList.isEmpty()) fileNamesList.removeLast();
         }
-        message = Util.convertListToArray(fileNamesList);
+        message = UtilServer.convertListToArray(fileNamesList);
         byte[] retByte = message;
-        if (Util.isLastPart(message, 1)) message = null;
-        return Util.createDataPacket((short) 1, retByte);
+        if (UtilServer.isLastPart(message, 1)) message = null;
+        return UtilServer.createDataPacket((short) 1, retByte);
     }
 
     private byte[] LogRQ(byte[] message) throws IOException {
@@ -161,28 +164,23 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
         byte[] cpMessage;
         byte[] opCode;
         if (connections.canConnect(ownerId)) {
-            //BlockingConnectionHandler<byte[]> blockingConnectionHandler = new BlockingConnectionHandler<>(
-            //new Socket(), new TftpEncoderDecoder(), this);
-            //was: connections.connect(connectionId, blockingConnectionHandler);
             connections.connect(ownerId, handler);
             opCode = new byte[]{0, 4};
             cpMessage = new byte[]{0, 0};
             isConnected = true;
         } else {
-            return Util.getError(new byte[]{0, 7});
+            return UtilServer.getError(new byte[]{0, 7});
 
         }
-        return Util.addZero(Util.concurArrays(opCode, cpMessage));
+        return UtilServer.addZero(UtilServer.concurArrays(opCode, cpMessage));
     }
 
     private byte[] delRQ(byte[] data) {
         String filename = new String(data);
-
-        if (!Util.fileExists(filename)) return Util.getError(new byte[]{0, 1});
-
-        Util.getFile(filename).delete();
-        bCast(Util.addZero(
-                Util.concurArrays(new byte[]{0, 9, 0}, data)));
+        if (!UtilServer.fileExists(filename)) return UtilServer.getError(new byte[]{0, 1});
+        UtilServer.getFile(filename).delete();
+        bCast(UtilServer.addZero(
+                UtilServer.concurArrays(new byte[]{0, 9, 0}, data)));
         return new byte[]{0, 4, 0, 0};
     }
 

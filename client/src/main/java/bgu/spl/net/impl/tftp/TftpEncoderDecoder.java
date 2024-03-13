@@ -1,6 +1,6 @@
 package bgu.spl.net.impl.tftp;
 
-import bgu.spl.net.Util;
+import bgu.spl.net.UtilClient;
 import bgu.spl.net.api.MessageEncoderDecoder;
 
 import java.util.LinkedList;
@@ -26,25 +26,25 @@ public class TftpEncoderDecoder implements MessageEncoderDecoder<String> {
             case 3:
                 // data packet
                 if (bytes.size() >= 4 &&
-                        bytes.size() - 6 == Util.convertBytesToShort(bytes.get(2), bytes.get(3)))
-                    retBytes = Util.convertListToArray(bytes);
+                        bytes.size() - 6 == UtilClient.convertBytesToShort(bytes.get(2), bytes.get(3)))
+                    retBytes = UtilClient.convertListToArray(bytes);
                 break;
             case 4:
-                if (bytes.size() == 4) retBytes = Util.convertListToArray(bytes);
+                if (bytes.size() == 4) retBytes = UtilClient.convertListToArray(bytes);
                 break;
             case 6:
             case 0xa:
-                retBytes = Util.convertListToArray(bytes);
+                retBytes = UtilClient.convertListToArray(bytes);
                 break;
             case 9: // bCast
                 if (bytes.size() >= 4 && bytes.get(bytes.size() - 1) == 0)
-                    retBytes = Util.convertListToArray(bytes);
+                    retBytes = UtilClient.convertListToArray(bytes);
                 break;
             case 5:
                 if (bytes.size() < 5) break;
             default:
-                if (bytes.get(bytes.size() - 1) == 0 | bytes.size() - 6 == Util.MAX_PACKET_LENGTH)
-                    retBytes = Util.convertListToArray(bytes);
+                if (bytes.get(bytes.size() - 1) == 0 | bytes.size() - 6 == UtilClient.MAX_PACKET_LENGTH)
+                    retBytes = UtilClient.convertListToArray(bytes);
                 break;
         }
         if (retBytes != null) bytes.clear();
@@ -86,8 +86,8 @@ public class TftpEncoderDecoder implements MessageEncoderDecoder<String> {
     }
 
     private byte[] getSimplePacket(int opcode, byte[] name) {
-        byte[] encoded = Util.concurArrays(new byte[]{0, (byte) opcode}, name);
-        encoded = Util.addZero(encoded);
+        byte[] encoded = UtilClient.concurArrays(new byte[]{0, (byte) opcode}, name);
+        encoded = UtilClient.addZero(encoded);
         return encoded;
     }
 

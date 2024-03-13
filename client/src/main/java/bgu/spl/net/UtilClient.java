@@ -5,7 +5,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.NoSuchElementException;
 
-public class Util {
+public class UtilClient {
     public static int MAX_PACKET_LENGTH = 512;
 
     public static boolean isLastPart(byte[] firstMessage, int currentPart) {
@@ -64,7 +64,7 @@ public class Util {
         byte[] info = concurArrays(convertShortToByteArray((short) data.length),
                 convertShortToByteArray(blockNumber));
         info = concurArrays(new byte[]{0, 3}, info);
-        return Util.concurArrays(info, data);
+        return UtilClient.concurArrays(info, data);
     }
 
     public static byte[] addZero(byte[] message) {
@@ -89,26 +89,27 @@ public class Util {
      * @return existing file if there is a file with 'fileName', else - some empty file which can be created
      */
     public static File getFilesDirectory() {
-        //String FilesPath = System.getProperty("user.dir") + "\\server\\Files";
-        String FilesPath = "Files"+File.separator;
+        String FilesPath = System.getProperty("user.dir") + "\\client\\Files";
+        //String FilesPath = "Files" + File.separator;
         return new File(FilesPath);
     }
 
     public static File getFile(String fileName) {
         File[] arr = getFilesDirectory().listFiles((dir, name) -> name.equals(fileName));
-        if (arr.length == 0) return new File(getFilesDirectory(), fileName);
+        if (arr == null || arr.length == 0) return new File(getFilesDirectory(), fileName);
         return arr[0];
         //return new File(getFilesDirectory(), fileName);
     }
 
     public static boolean fileExists(String filename) {
         File directory = getFilesDirectory();
-        return directory.listFiles((dir, name) -> name.equals(filename)).length > 0;
+        File[] arr = directory.listFiles((dir, name) -> name.equals(filename));
+        return (arr != null && arr.length > 0);
     }
 
     public static byte[] getError(byte[] errorType) {
         if (errorType[0] != 0) throw new IllegalArgumentException("Illegal error type inserted!");
-        byte[] error = Util.concurArrays(new byte[]{0, 5}, errorType);
+        byte[] error = UtilClient.concurArrays(new byte[]{0, 5}, errorType);
         String errorMessage;
 
         switch (errorType[1]) {
@@ -139,7 +140,7 @@ public class Util {
             default:
                 throw new IllegalArgumentException("Illegal error type inserted!");
         }
-        return Util.addZero(Util.concurArrays(error, errorMessage.getBytes()));
+        return UtilClient.addZero(UtilClient.concurArrays(error, errorMessage.getBytes()));
     }
 
     public static void printHexBytes(byte[] arr) {
