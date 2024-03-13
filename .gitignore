@@ -101,5 +101,5 @@ hs_err_pid*
 /server/target/
 
 #files that can be large:
-server/Files/
-client/Files/
+server/Files
+client/Files
