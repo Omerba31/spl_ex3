@@ -123,7 +123,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
             //bCast(bCastPacket);
             openFile = null;
         }
-        return AckRQ(new byte[]{data[4], data[5]});
+        return new byte[]{0,4,data[2], data[3]};
     }
 
     private byte[] AckRQ(byte[] lastACK) {
