@@ -16,12 +16,12 @@ public class TftpClient {
             args = new String[]{"localhost"};
         }
 
-        if (args.length >= 2) {
-            System.out.println("you must supply one argument: host");
+        if (args.length == 1| args.length > 2) {
+            System.out.println("you must supply two arguments: host and port");
             System.exit(1);
         }
 
-        BaseClient baseClient = new BaseClient(7777,
+        BaseClient baseClient = new BaseClient(Integer.parseInt(args[1]),
                 new TftpClientProtocol(), new TftpEncoderDecoder());
         baseClient.consume(args[0]);
     }

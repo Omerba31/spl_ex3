@@ -89,8 +89,8 @@ public class Util {
      * @return existing file if there is a file with 'fileName', else - some empty file which can be created
      */
     public static File getFile(String fileName) {
-        //String FilesPath = System.getProperty("user.dir") + "\\server\\Files";
-        String FilesPath = "Files";
+        String FilesPath = System.getProperty("user.dir") + "\\server\\Files";
+        //String FilesPath = "Files";
         File directory = new File(FilesPath);
         return new File(directory, fileName);
     }

@@ -4,6 +4,9 @@ import bgu.spl.net.Util;
 import bgu.spl.net.api.BidiMessagingProtocol;
 import bgu.spl.net.srv.BlockingConnectionHandler;
 import bgu.spl.net.srv.Connections;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.Files;
 
 import java.io.*;
 import java.net.Socket;
@@ -36,7 +39,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
         byte[] data = new byte[message.length - 2];
         System.arraycopy(message, 2, data, 0, data.length);
         if (data.length > 0 && data[data.length - 1] == 0) data = Util.cutFromEnd(data, 1);
-        if (!isConnected & type != 7) return Util.getError(new byte[]{0, 6});
+        //if (!isConnected & type != 7) return Util.getError(new byte[]{0, 6});
         switch (type) {
             case 1:
                 return RRQ(data);
@@ -88,14 +91,19 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
 
     private byte[] WRQ(byte[] fileName) throws IOException {
         String stringFileName = new String(fileName);
-        File file = Util.getFile(stringFileName);
+        String FilesPath = System.getProperty("user.dir") + "\\server\\Files";
+        //String FilesPath = "Files";
+        Path directory = Paths.get(FilesPath);
+        Path filePath = directory.resolve(stringFileName);
         try {
-            if (!file.createNewFile())
+            Files.createFile(filePath);
+            this.openFile = new File(Files.createFile(filePath).toString());
+            /*if (!file.createFile())
                 return Util.getError(new byte[]{0, 2}); //ERROR - FILE ALREADY EXISTS
             else {
                 file.setReadable(false);
                 openFile = file;
-            }
+            }*/
         } catch (IOException e) {
             throw new IOException("can't create file");
         }
