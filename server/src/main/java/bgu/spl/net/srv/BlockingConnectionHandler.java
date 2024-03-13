@@ -40,7 +40,7 @@ public class BlockingConnectionHandler<T> implements Runnable, ConnectionHandler
                             send(response);
                         }
                     } catch (Exception e){
-                        System.out.println(e.toString());
+                        System.out.println(e);
                     }
                 }
             }
