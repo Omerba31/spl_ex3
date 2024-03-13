@@ -185,8 +185,6 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
         Util.getFile(filename).delete();
         bCast(Util.addZero(
                 Util.concurArrays(new byte[]{0, 9, 0}, data)));
-        /*bCast(Util.addZero(
-                Util.concurArrays(new byte[]{0, 9, 1}, openFile.getName().getBytes())));*/
         return new byte[]{0, 4, 0, 0};
     }
 
