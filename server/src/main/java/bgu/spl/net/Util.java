@@ -83,11 +83,6 @@ public class Util {
         System.arraycopy(arr, 0, retByte, 0, retByte.length);
         return retByte;
     }
-
-    /**
-     * @param fileName - name of the file to get
-     * @return existing file if there is a file with 'fileName', else - some empty file which can be created
-     */
     public static File getFilesDirectory() {
         //String FilesPath = System.getProperty("user.dir") + "\\server\\Files";
         String FilesPath = "Files" + File.separator;

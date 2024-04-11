@@ -16,7 +16,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
     private boolean isConnected;
     private byte[] message = null;
     private File openFile = null;
-    private BlockingConnectionHandler handler;
+    private BlockingConnectionHandler<byte[]> handler;
 
 
     /*public TftpProtocol(int connectionId, Connections<byte[]> connections) {
@@ -80,8 +80,9 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
         while ((line = reader.readLine()) != null) {
             content.append(line).append("\n");
         }
+        content.deleteCharAt(content.length()-1);
         message = content.toString().getBytes();
-        System.out.println(new String(message));
+        //System.out.println(new String(message));
         byte[] currentMessage = message;
         if (Util.isLastPart(message, 1)) message = null;
         return Util.createDataPacket((short) 1, currentMessage);
@@ -94,7 +95,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
             if (!file.createNewFile())
                 return Util.getError(new byte[]{0, 2}); //ERROR - FILE ALREADY EXISTS
             else {
-                file.setReadable(false);
+                //file.setReadable(false);
                 openFile = file;
             }
         } catch (IOException e) {
@@ -118,8 +119,8 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
             throw new IOException(e);
         }
         if (onlyData.length < 512) {
-            openFile.setReadable(true);
-            openFile.setReadOnly();
+            //openFile.setReadable(true);
+            //openFile.setReadOnly();
             bCast(Util.addZero(
                     Util.concurArrays(new byte[]{0, 9, 1}, openFile.getName().getBytes())));
             openFile = null;
@@ -133,7 +134,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
         currentPart++;
         byte[] currentMessage = message;
         if (Util.isLastPart(message, currentPart)) message = null;
-        byte [] ACK = Util.createDataPacket(currentPart, currentMessage);
+        byte[] ACK = Util.createDataPacket(currentPart, currentMessage);
         System.out.println(new String(ACK));
         return ACK;
     }
