@@ -1,6 +1,6 @@
 package bgu.spl.net.impl.srv;
 
-import bgu.spl.net.UtilClient;
+import bgu.spl.net.Util;
 import bgu.spl.net.impl.tftp.TftpClientProtocol;
 import bgu.spl.net.impl.tftp.TftpEncoderDecoder;
 
@@ -63,10 +63,10 @@ public class BaseClient {
                     }
                 }
                 if (packet != null) {
-                    UtilClient.OP request = UtilClient.getOpByByte(packet[1]);
+                    Util.OP request = Util.getOpByByte(packet[1]);
                     protocol.inform(request);
-                    if (request == UtilClient.OP.WRQ) {
-                        if (!UtilClient.fileExists(new String(Arrays.copyOfRange(packet, 2, packet.length - 1)))) {
+                    if (request == Util.OP.WRQ) {
+                        if (!Util.isExists(new String(Arrays.copyOfRange(packet, 2, packet.length - 1)))) {
                             protocol.recievedAnswer = true;
                             System.out.println("Given file doesn't exist");
                         } else {
@@ -75,9 +75,9 @@ public class BaseClient {
 
                             send(packet);
                         }
-                    } else if (request == UtilClient.OP.RRQ) {
+                    } else if (request == Util.OP.RRQ) {
                         protocol.inform(new String(
-                                Arrays.copyOfRange(packet, 2, packet.length - 1)), request == UtilClient.OP.RRQ);
+                                Arrays.copyOfRange(packet, 2, packet.length - 1)), request == Util.OP.RRQ);
                         send(packet);
                     } else
                         send(packet);
@@ -117,13 +117,12 @@ public class BaseClient {
                         }
                     }
                 }
-                keyboardTread.interrupt();
             } catch (IOException e) {
                 terminate = true;
                 System.out.println("server probably down");
                 protocol.recievedAnswer = true;
-                keyboardTread.interrupt();
             }
+            keyboardTread.interrupt();
             System.out.println("listening thread is terminated");
         };
     }

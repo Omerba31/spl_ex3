@@ -5,7 +5,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.NoSuchElementException;
 
-public class UtilClient {
+public class Util {
     public static int MAX_PACKET_LENGTH = 512;
 
     public static boolean isLastPart(byte[] firstMessage, int currentPart) {
@@ -64,7 +64,7 @@ public class UtilClient {
         byte[] info = concurArrays(convertShortToByteArray((short) data.length),
                 convertShortToByteArray(blockNumber));
         info = concurArrays(new byte[]{0, 3}, info);
-        return UtilClient.concurArrays(info, data);
+        return Util.concurArrays(info, data);
     }
 
     public static byte[] addZero(byte[] message) {
@@ -89,8 +89,8 @@ public class UtilClient {
      * @return existing file if there is a file with 'fileName', else - some empty file which can be created
      */
     public static File getFilesDirectory() {
-        String FilesPath = System.getProperty("user.dir") + "\\client\\Files";
-        //String FilesPath = "Files" + File.separator;
+        //String FilesPath = System.getProperty("user.dir") + "\\server\\Files";
+        String FilesPath = "Files" + File.separator;
         return new File(FilesPath);
     }
 
@@ -101,15 +101,14 @@ public class UtilClient {
         //return new File(getFilesDirectory(), fileName);
     }
 
-    public static boolean fileExists(String filename) {
+    public static boolean isExists(String filename) {
         File directory = getFilesDirectory();
-        File[] arr = directory.listFiles((dir, name) -> name.equals(filename));
-        return (arr != null && arr.length > 0);
+        return directory.listFiles((dir, name) -> name.equals(filename)).length > 0;
     }
 
     public static byte[] getError(byte[] errorType) {
         if (errorType[0] != 0) throw new IllegalArgumentException("Illegal error type inserted!");
-        byte[] error = UtilClient.concurArrays(new byte[]{0, 5}, errorType);
+        byte[] error = Util.concurArrays(new byte[]{0, 5}, errorType);
         String errorMessage;
 
         switch (errorType[1]) {
@@ -117,7 +116,7 @@ public class UtilClient {
                 errorMessage = "Not defined, see error message (if any).";
                 break;
             case 1:
-                errorMessage = "1 File not found – RRQ DELRQ of non-existing file.";
+                errorMessage = "File not found – RRQ / DELRQ of non-existing file.";
                 break;
             case 2:
                 errorMessage = "Access violation – File cannot be written, read or deleted.";
@@ -140,7 +139,7 @@ public class UtilClient {
             default:
                 throw new IllegalArgumentException("Illegal error type inserted!");
         }
-        return UtilClient.addZero(UtilClient.concurArrays(error, errorMessage.getBytes()));
+        return Util.addZero(Util.concurArrays(error, errorMessage.getBytes()));
     }
 
     public static void printHexBytes(byte[] arr) {
