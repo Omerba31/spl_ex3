@@ -1,7 +1,11 @@
 package bgu.spl.net;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.NoSuchElementException;
 
@@ -42,14 +46,6 @@ public class Util {
         System.arraycopy(src, numOfBlocksToRemove * MAX_PACKET_LENGTH, retByte, 0, copyLength);
         return retByte;
     }
-
-    /*public static short byteHexArrayToShort(byte[] bytes) {
-        StringBuilder sb = new StringBuilder();
-        for (byte b : bytes) {
-            sb.append(String.format("%02X", b)); // Convert byte to hexadecimal string
-        }
-        return Short.parseShort(sb.toString());
-    }*/
 
     public static byte[] convertShortToByteArray(short s) {
         return new byte[]{(byte) ((s >> 8) & 0xFF), (byte) (s & 0xff)};
@@ -93,12 +89,16 @@ public class Util {
         File[] arr = getFilesDirectory().listFiles((dir, name) -> name.equals(fileName));
         if (arr == null || arr.length == 0) return new File(getFilesDirectory(), fileName);
         return arr[0];
-        //return new File(getFilesDirectory(), fileName);
     }
 
     public static boolean isExists(String filename) {
         File directory = getFilesDirectory();
         return directory.listFiles((dir, name) -> name.equals(filename)).length > 0;
+    }
+
+    public static void writeInto(File destination, byte[] data) throws IOException {
+        FileOutputStream out = new FileOutputStream(destination,true);
+        out.write(data);
     }
 
     public static byte[] getError(byte[] errorType) {

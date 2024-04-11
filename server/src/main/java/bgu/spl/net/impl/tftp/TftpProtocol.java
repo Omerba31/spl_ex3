@@ -6,6 +6,7 @@ import bgu.spl.net.srv.BlockingConnectionHandler;
 import bgu.spl.net.srv.Connections;
 
 import java.io.*;
+import java.nio.file.Files;
 import java.util.LinkedList;
 
 public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
@@ -73,27 +74,17 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
     private byte[] RRQ(byte[] filename) throws Exception {
         File file = Util.getFile(new String(filename));
         if (!file.exists()) return Util.getError(new byte[]{0, 1});
-        BufferedReader reader = new BufferedReader(new FileReader(file.getAbsoluteFile()));
-        StringBuilder content = new StringBuilder();
-        String line;
-        // Read each line from the file and append it to the content string
-        while ((line = reader.readLine()) != null) {
-            content.append(line).append("\n");
-        }
-        content.deleteCharAt(content.length()-1);
-        message = content.toString().getBytes();
-        //System.out.println(new String(message));
+        message = Files.readAllBytes(file.getAbsoluteFile().toPath());
         byte[] currentMessage = message;
         if (Util.isLastPart(message, 1)) message = null;
         return Util.createDataPacket((short) 1, currentMessage);
     }
 
     private byte[] WRQ(byte[] fileName) throws IOException {
-        String stringFileName = new String(fileName);
-        File file = Util.getFile(stringFileName);
+        File file = Util.getFile(new String(fileName));
         try {
             if (!file.createNewFile())
-                return Util.getError(new byte[]{0, 2}); //ERROR - FILE ALREADY EXISTS
+                return Util.getError(new byte[]{0, 5}); //ERROR - FILE ALREADY EXISTS
             else {
                 //file.setReadable(false);
                 openFile = file;
@@ -108,16 +99,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
         if (openFile == null) throw new FileNotFoundException();
         byte[] onlyData = new byte[data.length - 4];
         System.arraycopy(data, 4, onlyData, 0, onlyData.length);
-
-        try (BufferedWriter writer =
-                     new BufferedWriter(new FileWriter(openFile.getAbsoluteFile(), true))) {
-            // Write content to the file
-            writer.write(new String(onlyData));
-            // Ensure content is flushed to the file
-            writer.flush();
-        } catch (IOException e) {
-            throw new IOException(e);
-        }
+        Util.writeInto(openFile, onlyData);
         if (onlyData.length < 512) {
             //openFile.setReadable(true);
             //openFile.setReadOnly();
@@ -134,9 +116,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
         currentPart++;
         byte[] currentMessage = message;
         if (Util.isLastPart(message, currentPart)) message = null;
-        byte[] ACK = Util.createDataPacket(currentPart, currentMessage);
-        System.out.println(new String(ACK));
-        return ACK;
+        return Util.createDataPacket(currentPart, currentMessage);
     }
 
     private byte[] dirRQ(byte[] data) {

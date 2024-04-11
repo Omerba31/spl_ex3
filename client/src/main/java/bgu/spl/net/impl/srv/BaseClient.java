@@ -58,34 +58,31 @@ public class BaseClient {
                         //System.out.println(packet);
                         correctInput = true;
                     } catch (IllegalArgumentException e) {
-                        correctInput = false;
                         System.out.println("wrong input");
                     }
                 }
                 if (packet != null) {
                     Util.OP request = Util.getOpByByte(packet[1]);
                     protocol.inform(request);
-                    if (request == Util.OP.WRQ) {
-                        if (!Util.isExists(new String(Arrays.copyOfRange(packet, 2, packet.length - 1)))) {
+                    if (request == Util.OP.WRQ && !Util.isExists(new String(Arrays.copyOfRange(
+                            packet, 2, packet.length - 1)))) {
                             protocol.recievedAnswer = true;
-                            System.out.println("Given file doesn't exist");
-                        } else {
-                            protocol.inform(new String(
-                                    Arrays.copyOfRange(packet, 2, packet.length - 1)), false);
-
-                            send(packet);
-                        }
-                    } else if (request == Util.OP.RRQ) {
-                        protocol.inform(new String(
-                                Arrays.copyOfRange(packet, 2, packet.length - 1)), request == Util.OP.RRQ);
+                            System.out.println("file does not exists");
+                            continue;
+                    }
+                    else if (request==Util.OP.WRQ | request == Util.OP.RRQ){
+                            protocol.inform(new String(Arrays.copyOfRange(
+                                    packet, 2, packet.length - 1)), request==Util.OP.RRQ);
+                    }
+                    try {
                         send(packet);
-                    } else
-                        send(packet);
-
+                    }catch (IOException ex) {
+                        terminate = true;
+                    }
                 }
                 synchronized (this) {
                     try {
-                        while (!protocol.recievedAnswer) this.wait();
+                        while (!protocol.recievedAnswer & !terminate) this.wait();
                     } catch (InterruptedException ignored) {
                     }
                 }
@@ -94,8 +91,8 @@ public class BaseClient {
             listeningThread.join();
             sock.close();
             System.out.println("client terminated");
-        } catch (Exception ex) {
-
+        } catch (Exception ignored) {
+            System.out.println("connection problems");
         }
     }
 
@@ -105,7 +102,6 @@ public class BaseClient {
             int read;
             try {
                 while (!protocol.shouldTerminate() && !terminate && (read = in.read()) >= 0) {
-
                     byte nextByte = (byte) read;
                     byte[] answer = encdec.decodeNextByte(nextByte);
                     if (answer == null) continue;
@@ -117,11 +113,11 @@ public class BaseClient {
                         }
                     }
                 }
-            } catch (IOException e) {
-                terminate = true;
+            } catch (Exception e) {
                 System.out.println("server probably down");
-                protocol.recievedAnswer = true;
             }
+            protocol.recievedAnswer = true;
+            terminate = true;
             keyboardTread.interrupt();
             System.out.println("listening thread is terminated");
         };

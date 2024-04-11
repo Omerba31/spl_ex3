@@ -1,6 +1,8 @@
 package bgu.spl.net;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -101,6 +103,11 @@ public class Util {
         File directory = getFilesDirectory();
         File[] arr = directory.listFiles((dir, name) -> name.equals(filename));
         return (arr != null && arr.length > 0);
+    }
+
+    public static void writeInto(File destination, byte[] data) throws IOException {
+        FileOutputStream out = new FileOutputStream(destination,true);
+        out.write(data);
     }
 
     public static byte[] getError(byte[] errorType) {

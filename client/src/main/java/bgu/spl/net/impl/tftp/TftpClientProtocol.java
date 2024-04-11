@@ -4,6 +4,7 @@ import bgu.spl.net.Util;
 import bgu.spl.net.api.MessagingProtocol;
 
 import java.io.*;
+import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -17,7 +18,7 @@ public class TftpClientProtocol implements MessagingProtocol<byte[]> {
     private boolean terminate;
 
     public TftpClientProtocol() {
-        this.request = request.None;
+        this.request = Util.OP.None;
         this.partedOutput = new LinkedList<>();
         this.requestedFile = null;
         this.messageToSend = null;
@@ -50,19 +51,14 @@ public class TftpClientProtocol implements MessagingProtocol<byte[]> {
                         boolean append = true;
                         if (!requestedFile.exists()) {
                             requestedFile.createNewFile(); // if it exists does nothing
-                            requestedFile.setReadable(false);
+                            //requestedFile.setReadable(false);
                         } else if (Util.convertBytesToShort(answer[2], answer[3]) == 0) append = false;
-                        BufferedWriter writer =
-                                new BufferedWriter(new FileWriter(requestedFile.getAbsoluteFile(), append));
                         byte[] onlyData = Arrays.copyOfRange(answer, 6, answer.length);
-                        // Write content to the file
-                        writer.write(new String(onlyData));
-                        // Ensure content is flushed to the file
-                        writer.flush();
+                        Util.writeInto(requestedFile,onlyData);
                         if (onlyData.length < 512) {
-                            requestedFile.setReadable(true);
+                            //requestedFile.setReadable(true);
                             //requestedFile.setReadOnly();
-                            System.out.println(requestedFile.getName() + " added successfully");
+                            System.out.println("RRQ " + requestedFile.getName() + " complete");
                             requestedFile = null;
                         }
                     } catch (IOException ignored) {
@@ -74,19 +70,20 @@ public class TftpClientProtocol implements MessagingProtocol<byte[]> {
                 } else result = new byte[]{0, 4, answer[4], answer[5]}; // ACK packet
                 break;
             case 4: //ACK packet
+                short currentPart = Util.convertBytesToShort(answer[2], answer[3]);
+                System.out.println("ACK " + currentPart);
                 if (messageToSend == null) {
                     recievedAnswer = true;
                     if (request == Util.OP.DISC) terminate = true;
-                    else if (request == Util.OP.LOGRQ) System.out.println("logged in successfully");
                     else if (request == Util.OP.WRQ) {
-                        System.out.println("finished uploading file");
+                        System.out.println("WRQ "+ requestedFile.getName() + " completed");
+                        requestedFile = null;
                         break;
                     }
 
                     request = Util.OP.None;
                     break;
                 }
-                short currentPart = Util.convertBytesToShort(answer[2], answer[3]);
                 currentPart++;
                 byte[] currentMessage = messageToSend;
                 if (Util.isLastPart(messageToSend, currentPart)) messageToSend = null;
@@ -116,22 +113,22 @@ public class TftpClientProtocol implements MessagingProtocol<byte[]> {
     }
 
     public void inform(String fileName, boolean read) {
-        if (read) {
-            if (Util.isExists(fileName)) Util.getFile(fileName).delete();
-            requestedFile = Util.getFile(fileName);
-        } else try {
-            if (!Util.isExists(fileName)) throw new RuntimeException("doesn't have file"); ////
+        if (read && Util.isExists(fileName)) Util.getFile(fileName).delete();
+        if(!read) try {
+            if (!Util.isExists(fileName)) throw new RuntimeException("doesn't have file");
             File file = Util.getFile(fileName);
-            BufferedReader reader = new BufferedReader(new FileReader(file.getAbsoluteFile()));
+            messageToSend = Files.readAllBytes(file.getAbsoluteFile().toPath());
+            /*BufferedReader reader = new BufferedReader(new FileReader(file.getAbsoluteFile()));
             StringBuilder content = new StringBuilder();
             String line;
             // Read each line from the file and append it to the content string
             while ((line = reader.readLine()) != null) {
                 content.append(line).append("\n");
             }
-            messageToSend = content.toString().getBytes();
+            messageToSend = content.toString().getBytes();*/
         } catch (Exception ignored) {
         }
+        requestedFile = Util.getFile(fileName);
     }
 
 }
