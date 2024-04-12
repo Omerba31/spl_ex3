@@ -9,6 +9,8 @@ import java.util.NoSuchElementException;
 
 public class Util {
     public static int MAX_PACKET_LENGTH = 512;
+    public static boolean runningOnLinux=true;
+
 
     public static boolean isLastPart(byte[] firstMessage, int currentPart) {
         return firstMessage.length < currentPart * MAX_PACKET_LENGTH;
@@ -78,9 +80,10 @@ public class Util {
         return retByte;
     }
     public static File getFilesDirectory() {
-        //String FilesPath = System.getProperty("user.dir") + "\\server\\Files";
-        String FilesPath = "Files" + File.separator;
-        return new File(FilesPath);
+        String path;
+        if(!runningOnLinux) path = System.getProperty("user.dir") + "\\server\\Files";
+        else path = "Files" + File.separator;
+        return new File(path);
     }
 
     public static File getFile(String fileName) {
