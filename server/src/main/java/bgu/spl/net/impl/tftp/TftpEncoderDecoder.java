@@ -5,8 +5,6 @@ import bgu.spl.net.api.MessageEncoderDecoder;
 import java.util.LinkedList;
 import java.util.List;
 
-import bgu.spl.net.Util;
-
 public class TftpEncoderDecoder implements MessageEncoderDecoder<byte[]> {
     private List<Byte> bytes = new LinkedList<>();
 

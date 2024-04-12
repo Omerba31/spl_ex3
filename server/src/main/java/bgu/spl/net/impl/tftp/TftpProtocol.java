@@ -1,6 +1,5 @@
 package bgu.spl.net.impl.tftp;
 
-import bgu.spl.net.Util;
 import bgu.spl.net.api.BidiMessagingProtocol;
 import bgu.spl.net.srv.BlockingConnectionHandler;
 import bgu.spl.net.srv.Connections;
@@ -11,25 +10,22 @@ import java.util.LinkedList;
 
 public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
 
-    private boolean shouldTerminate = false;
+    private boolean shouldTerminate;
     private volatile TftpConnections<byte[]> connections;
     private int ownerId;
     private boolean isConnected;
-    private byte[] message = null;
-    private File openFile = null;
+    private File openFile;
     private BlockingConnectionHandler<byte[]> handler;
 
-
-    /*public TftpProtocol(int connectionId, Connections<byte[]> connections) {
-        start(connectionId, connections);
-    }*/
 
     @Override
     public void start(int connectionId, Connections<byte[]> connections, BlockingConnectionHandler<byte[]> handler) {
         this.connections = (TftpConnections<byte[]>) connections;
+        this.shouldTerminate=false;
         this.ownerId = connectionId;
         this.isConnected = false;
         this.handler = handler;
+        this.openFile = null;
     }
 
     @Override
@@ -74,10 +70,8 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
     private byte[] RRQ(byte[] filename) throws Exception {
         File file = Util.getFile(new String(filename));
         if (!file.exists()) return Util.getError(new byte[]{0, 1});
-        message = Files.readAllBytes(file.getAbsoluteFile().toPath());
-        byte[] currentMessage = message;
-        if (Util.isLastPart(message, 1)) message = null;
-        return Util.createDataPacket((short) 1, currentMessage);
+        openFile = file;
+        return Util.createDataPacket((short) 1, Util.readPartOfFile(openFile, (short) 1));
     }
 
     private byte[] WRQ(byte[] fileName) throws IOException {
@@ -96,26 +90,29 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
     }
 
     private byte[] dataRQ(byte[] data) throws Exception {
-        if (openFile == null) throw new FileNotFoundException();
+        if (openFile == null) throw new FileNotFoundException("no open file");
         byte[] onlyData = new byte[data.length - 4];
         System.arraycopy(data, 4, onlyData, 0, onlyData.length);
         Util.writeInto(openFile, onlyData);
-        if (onlyData.length < 512) {
+        if (onlyData.length < Util.MAX_PACKET_LENGTH) {
             //openFile.setReadable(true);
             //openFile.setReadOnly();
-            bCast(Util.addZero(
-                    Util.concurArrays(new byte[]{0, 9, 1}, openFile.getName().getBytes())));
+            bCast(Util.addZero(Util.concurArrays(new byte[]{0, 9, 1}, openFile.getName().getBytes())));
             openFile = null;
         }
         return new byte[]{0, 4, data[2], data[3]};
     }
 
     private byte[] AckRQ(byte[] lastACK) {
-        if (message == null) return null;
+        if (openFile == null) return null;
         short currentPart = Util.convertBytesToShort(lastACK[0], lastACK[1]);
         currentPart++;
-        byte[] currentMessage = message;
-        if (Util.isLastPart(message, currentPart)) message = null;
+        byte[] currentMessage=null;
+        try {
+            currentMessage = Util.readPartOfFile(openFile, currentPart);
+        } catch (Exception ignored){}
+        if (currentMessage==null) return null;
+        if (currentMessage.length<Util.MAX_PACKET_LENGTH) openFile = null;
         return Util.createDataPacket(currentPart, currentMessage);
     }
 
@@ -132,27 +129,16 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
             }
             if (!fileNamesList.isEmpty()) fileNamesList.removeLast();
         }
-        message = Util.convertListToArray(fileNamesList);
-        byte[] retByte = message;
-        if (Util.isLastPart(message, 1)) message = null;
-        return Util.createDataPacket((short) 1, retByte);
+        return Util.createDataPacket((short) 1, Util.convertListToArray(fileNamesList));
     }
 
     private byte[] LogRQ(byte[] message) throws IOException {
         String userName = new String(message);
         ownerId = userName.hashCode();
-        byte[] cpMessage;
-        byte[] opCode;
-        if (connections.canConnect(ownerId)) {
-            connections.connect(ownerId, handler);
-            opCode = new byte[]{0, 4};
-            cpMessage = new byte[]{0, 0};
-            isConnected = true;
-        } else {
-            return Util.getError(new byte[]{0, 7});
-
-        }
-        return Util.addZero(Util.concurArrays(opCode, cpMessage));
+        if (!connections.canConnect(ownerId)) return Util.getError(new byte[]{0, 7});
+        connections.connect(ownerId, handler);
+        isConnected = true;
+        return new byte[]{0, 4, 0, 0};
     }
 
     private byte[] delRQ(byte[] data) {

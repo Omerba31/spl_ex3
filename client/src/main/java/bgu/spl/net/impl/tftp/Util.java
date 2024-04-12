@@ -1,6 +1,7 @@
-package bgu.spl.net;
+package bgu.spl.net.impl.tftp;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -111,6 +112,21 @@ public class Util {
         FileOutputStream out = new FileOutputStream(destination,true);
         out.write(data);
         out.close();
+    }
+
+    public static byte[] readPartOfFile(File file, long startPosition, int bytesToRead) throws IOException {
+
+        try (FileInputStream fis = new FileInputStream(file)) {
+            fis.skip(startPosition); // Move to the start position
+
+            byte[] buffer = new byte[bytesToRead];
+            int bytesRead = fis.read(buffer); // Read bytes into the buffer
+
+            if (bytesRead != -1) {
+                return buffer;
+            }
+        }
+        return new byte[0];
     }
 
     public static byte[] getError(byte[] errorType) {

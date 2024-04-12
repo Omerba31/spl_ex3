@@ -1,14 +1,16 @@
-package bgu.spl.net;
+package bgu.spl.net.impl.tftp;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.List;
 import java.util.NoSuchElementException;
 
 public class Util {
-    public static int MAX_PACKET_LENGTH = 512;
+    public static final short MAX_PACKET_LENGTH = 512;
     public static boolean runningOnLinux=true;
 
 
@@ -102,7 +104,27 @@ public class Util {
         out.write(data);
         out.close();
     }
+    public static byte[] readPartOfFile(File file, short part) throws IOException {
+        return readPartOfFile(file, (long) (part-1) *Util.MAX_PACKET_LENGTH, Util.MAX_PACKET_LENGTH);
+    }
+    private static byte[] readPartOfFile(File file, long startPosition, short bytesToRead) throws IOException {
 
+        long fileSize = Files.size(file.toPath());
+        if(bytesToRead>fileSize-startPosition) bytesToRead = (short) (fileSize-startPosition);
+        //prevent error of reading outside the file
+
+        try (FileInputStream fis = new FileInputStream(file)) {
+            fis.skip(startPosition); // Move to the start position
+
+            byte[] buffer = new byte[bytesToRead];
+            int bytesRead = fis.read(buffer); // Read bytes into the buffer
+
+            if (bytesRead != -1) {
+                return buffer;
+            }
+        }
+        return new byte[0];
+    }
     public static byte[] getError(byte[] errorType) {
         if (errorType[0] != 0) throw new IllegalArgumentException("Illegal error type inserted!");
         byte[] error = Util.concurArrays(new byte[]{0, 5}, errorType);

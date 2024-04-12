@@ -36,7 +36,6 @@ public class TftpConnections<T> implements Connections<T> {
 
     public synchronized void bCast(T msg, int ID) {
         for (int connectionID : activeUserHashMap.keySet()) {
-            if (connectionID == ID) continue;
             activeUserHashMap.get(connectionID).send(msg);
         }
     }

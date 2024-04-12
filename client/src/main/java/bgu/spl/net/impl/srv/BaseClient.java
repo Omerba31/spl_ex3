@@ -1,6 +1,6 @@
 package bgu.spl.net.impl.srv;
 
-import bgu.spl.net.Util;
+import bgu.spl.net.impl.tftp.Util;
 import bgu.spl.net.impl.tftp.TftpClientProtocol;
 import bgu.spl.net.impl.tftp.TftpEncoderDecoder;
 

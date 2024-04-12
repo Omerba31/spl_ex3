@@ -1,6 +1,5 @@
 package bgu.spl.net.impl.tftp;
 
-import bgu.spl.net.Util;
 import bgu.spl.net.api.MessagingProtocol;
 
 import java.io.*;
@@ -33,17 +32,14 @@ public class TftpClientProtocol implements MessagingProtocol<byte[]> {
         switch (answer[1]) {
             case 3: //data packet
                 if (request == Util.OP.DIRQ) {
-                    System.out.println("files in dir:");
-                    int counter = 0;
                     for (int i = 6; i < answer.length; i++) {
                         if (answer[i] == 0) {
-                            counter++;
-                            System.out.println("file " + counter + ": " + new String(Util.convertListToArray(partedOutput)));
+                            System.out.println(new String(Util.convertListToArray(partedOutput)));
                             partedOutput.clear();
                         } else partedOutput.add(answer[i]);
                     }
                     if (answer.length > 6 & answer.length < Util.MAX_PACKET_LENGTH + 6) {
-                        System.out.println("file " + counter + ": " + new String(Util.convertListToArray(partedOutput)));
+                        System.out.println(new String(Util.convertListToArray(partedOutput)));
                         partedOutput.clear();
                     }
                 } else if (request == Util.OP.RRQ) {
