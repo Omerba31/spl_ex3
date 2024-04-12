@@ -1,11 +1,9 @@
 package bgu.spl.net;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.NoSuchElementException;
 
@@ -99,6 +97,7 @@ public class Util {
     public static void writeInto(File destination, byte[] data) throws IOException {
         FileOutputStream out = new FileOutputStream(destination,true);
         out.write(data);
+        out.close();
     }
 
     public static byte[] getError(byte[] errorType) {

@@ -3,10 +3,8 @@ package bgu.spl.net.impl.tftp;
 import bgu.spl.net.srv.ConnectionHandler;
 import bgu.spl.net.srv.Connections;
 
-import java.io.IOException;
 import java.nio.channels.AlreadyConnectedException;
 import java.util.HashMap;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class TftpConnections<T> implements Connections<T> {
 

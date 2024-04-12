@@ -108,6 +108,7 @@ public class Util {
     public static void writeInto(File destination, byte[] data) throws IOException {
         FileOutputStream out = new FileOutputStream(destination,true);
         out.write(data);
+        out.close();
     }
 
     public static byte[] getError(byte[] errorType) {

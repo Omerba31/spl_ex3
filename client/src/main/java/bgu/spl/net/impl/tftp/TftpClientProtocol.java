@@ -48,11 +48,11 @@ public class TftpClientProtocol implements MessagingProtocol<byte[]> {
                     }
                 } else if (request == Util.OP.RRQ) {
                     try {
-                        boolean append = true;
+                        //boolean append = true;
                         if (!requestedFile.exists()) {
                             requestedFile.createNewFile(); // if it exists does nothing
                             //requestedFile.setReadable(false);
-                        } else if (Util.convertBytesToShort(answer[2], answer[3]) == 0) append = false;
+                        } //else if (Util.convertBytesToShort(answer[2], answer[3]) == 0) append = false;
                         byte[] onlyData = Arrays.copyOfRange(answer, 6, answer.length);
                         Util.writeInto(requestedFile,onlyData);
                         if (onlyData.length < 512) {
