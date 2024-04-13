@@ -11,7 +11,7 @@ import java.util.List;
 public class TftpClientProtocol implements MessagingProtocol<byte[]> {
     private Util.OP request;
     private List<Byte> partedOutput;
-    private File requestedFile;
+    private File openFile;
     public Boolean recievedAnswer;
     private byte[] messageToSend;
     private boolean terminate;
@@ -19,7 +19,7 @@ public class TftpClientProtocol implements MessagingProtocol<byte[]> {
     public TftpClientProtocol() {
         this.request = Util.OP.None;
         this.partedOutput = new LinkedList<>();
-        this.requestedFile = null;
+        this.openFile = null;
         this.messageToSend = null;
         this.recievedAnswer = false;
         this.terminate = false;
@@ -44,18 +44,17 @@ public class TftpClientProtocol implements MessagingProtocol<byte[]> {
                     }
                 } else if (request == Util.OP.RRQ) {
                     try {
-                        //boolean append = true;
-                        if (!requestedFile.exists()) {
-                            requestedFile.createNewFile(); // if it exists does nothing
+                        if (!openFile.exists()) {
+                            openFile.createNewFile(); // if it exists does nothing
                             //requestedFile.setReadable(false);
                         } //else if (Util.convertBytesToShort(answer[2], answer[3]) == 0) append = false;
                         byte[] onlyData = Arrays.copyOfRange(answer, 6, answer.length);
-                        Util.writeInto(requestedFile,onlyData);
-                        if (onlyData.length < 512) {
+                        Util.writeInto(openFile, onlyData);
+                        if (onlyData.length < Util.MAX_PACKET_LENGTH) {
                             //requestedFile.setReadable(true);
                             //requestedFile.setReadOnly();
-                            System.out.println("RRQ " + requestedFile.getName() + " complete");
-                            requestedFile = null;
+                            System.out.println("RRQ " + openFile.getName() + " complete");
+                            //requestedFile = null;
                         }
                     } catch (IOException ignored) {
                     }
@@ -63,27 +62,30 @@ public class TftpClientProtocol implements MessagingProtocol<byte[]> {
                 if (answer.length < Util.MAX_PACKET_LENGTH + 6) {
                     request = Util.OP.None;
                     recievedAnswer = true;
+                    openFile = null;
                 } else result = new byte[]{0, 4, answer[4], answer[5]}; // ACK packet
                 break;
             case 4: //ACK packet
                 short currentPart = Util.convertBytesToShort(answer[2], answer[3]);
                 System.out.println("ACK " + currentPart);
-                if (messageToSend == null) {
-                    recievedAnswer = true;
+                if (request != Util.OP.WRQ) { //server gave his final answer
                     if (request == Util.OP.DISC) terminate = true;
-                    else if (request == Util.OP.WRQ) {
-                        System.out.println("WRQ "+ requestedFile.getName() + " completed");
-                        requestedFile = null;
-                        break;
-                    }
-
+                    recievedAnswer = true;
                     request = Util.OP.None;
-                    break;
+                    openFile = null;
+                } else {
+                    currentPart++;
+                    try {
+                        result = Util.readPartOfFile(openFile, currentPart);
+                    } catch (Exception ignored) {
+                    }
+                    if (result == null || result.length == 0) {
+                        System.out.println("WRQ " + openFile.getName() + " completed");
+                        openFile = null;
+                        recievedAnswer = true;
+                        result = null;
+                    }
                 }
-                currentPart++;
-                byte[] currentMessage = messageToSend;
-                if (Util.isLastPart(messageToSend, currentPart)) messageToSend = null;
-                result = Util.createDataPacket(currentPart, currentMessage);
                 break;
             case 5: //error packet
                 System.out.println("ERROR " + answer[3] + ": " + new String(
@@ -110,21 +112,8 @@ public class TftpClientProtocol implements MessagingProtocol<byte[]> {
 
     public void inform(String fileName, boolean read) {
         if (read && Util.isExists(fileName)) Util.getFile(fileName).delete();
-        if(!read) try {
-            if (!Util.isExists(fileName)) throw new RuntimeException("doesn't have file");
-            File file = Util.getFile(fileName);
-            messageToSend = Files.readAllBytes(file.getAbsoluteFile().toPath());
-            /*BufferedReader reader = new BufferedReader(new FileReader(file.getAbsoluteFile()));
-            StringBuilder content = new StringBuilder();
-            String line;
-            // Read each line from the file and append it to the content string
-            while ((line = reader.readLine()) != null) {
-                content.append(line).append("\n");
-            }
-            messageToSend = content.toString().getBytes();*/
-        } catch (Exception ignored) {
-        }
-        requestedFile = Util.getFile(fileName);
+        if (!read && !Util.isExists(fileName)) throw new RuntimeException("doesn't have file");
+        openFile = Util.getFile(fileName);
     }
 
 }

@@ -34,7 +34,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
         byte[] data = new byte[message.length - 2];
         System.arraycopy(message, 2, data, 0, data.length);
         if (data.length > 0 && data[data.length - 1] == 0) data = Util.cutFromEnd(data, 1);
-        if (!isConnected & type != 7) return Util.getError(new byte[]{0, 6});
+        //if (!isConnected & type != 7) return Util.getError(new byte[]{0, 6});
         if (isConnected & type == 7) return Util.getError(new byte[]{0, 7});
         switch (type) {
             case 1:

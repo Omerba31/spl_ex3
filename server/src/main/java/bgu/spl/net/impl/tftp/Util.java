@@ -58,11 +58,11 @@ public class Util {
     }
 
     public static byte[] createDataPacket(short blockNumber, byte[] message) {
-        byte[] data = getPartArray(message, blockNumber);
-        byte[] info = concurArrays(convertShortToByteArray((short) data.length),
+        //byte[] data = getPartArray(message, blockNumber);
+        byte[] info = concurArrays(convertShortToByteArray((short) message.length),
                 convertShortToByteArray(blockNumber));
         info = concurArrays(new byte[]{0, 3}, info);
-        return Util.concurArrays(info, data);
+        return Util.concurArrays(info, message);
     }
 
     public static byte[] addZero(byte[] message) {
@@ -112,7 +112,7 @@ public class Util {
         long fileSize = Files.size(file.toPath());
         if(bytesToRead>fileSize-startPosition) bytesToRead = (short) (fileSize-startPosition);
         //prevent error of reading outside the file
-
+        if (bytesToRead<1) return null;
         try (FileInputStream fis = new FileInputStream(file)) {
             fis.skip(startPosition); // Move to the start position
 
@@ -123,7 +123,7 @@ public class Util {
                 return buffer;
             }
         }
-        return new byte[0];
+        return null;
     }
     public static byte[] getError(byte[] errorType) {
         if (errorType[0] != 0) throw new IllegalArgumentException("Illegal error type inserted!");

@@ -5,11 +5,12 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.List;
 import java.util.NoSuchElementException;
 
 public class Util {
-    public static int MAX_PACKET_LENGTH = 512;
+    public static final short MAX_PACKET_LENGTH = (short)512;
     public static boolean runningOnLinux=true;
 
     public static boolean isLastPart(byte[] firstMessage, int currentPart) {
@@ -64,11 +65,11 @@ public class Util {
     }
 
     public static byte[] createDataPacket(short blockNumber, byte[] message) {
-        byte[] data = getPartArray(message, blockNumber);
-        byte[] info = concurArrays(convertShortToByteArray((short) data.length),
+        //byte[] data = getPartArray(message, blockNumber);
+        byte[] info = concurArrays(convertShortToByteArray((short) message.length),
                 convertShortToByteArray(blockNumber));
         info = concurArrays(new byte[]{0, 3}, info);
-        return Util.concurArrays(info, data);
+        return Util.concurArrays(info, message);
     }
 
     public static byte[] addZero(byte[] message) {
@@ -107,14 +108,19 @@ public class Util {
         File[] arr = directory.listFiles((dir, name) -> name.equals(filename));
         return (arr != null && arr.length > 0);
     }
-
     public static void writeInto(File destination, byte[] data) throws IOException {
         FileOutputStream out = new FileOutputStream(destination,true);
         out.write(data);
         out.close();
     }
+    public static byte[] readPartOfFile(File file, short part) throws IOException {
+        return readPartOfFile(file, (long) (part-1) *Util.MAX_PACKET_LENGTH, Util.MAX_PACKET_LENGTH);
+    }
+    private static byte[] readPartOfFile(File file, long startPosition, short bytesToRead) throws IOException {
 
-    public static byte[] readPartOfFile(File file, long startPosition, int bytesToRead) throws IOException {
+        long fileSize = Files.size(file.toPath());
+        if (bytesToRead > fileSize - startPosition) bytesToRead = (short) (fileSize - startPosition);
+        //prevent error of reading outside the file
 
         try (FileInputStream fis = new FileInputStream(file)) {
             fis.skip(startPosition); // Move to the start position
@@ -128,8 +134,7 @@ public class Util {
         }
         return new byte[0];
     }
-
-    public static byte[] getError(byte[] errorType) {
+        public static byte[] getError(byte[] errorType) {
         if (errorType[0] != 0) throw new IllegalArgumentException("Illegal error type inserted!");
         byte[] error = Util.concurArrays(new byte[]{0, 5}, errorType);
         String errorMessage;
