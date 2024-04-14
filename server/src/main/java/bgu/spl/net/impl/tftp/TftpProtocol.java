@@ -79,7 +79,6 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
             if (!file.createNewFile())
                 return TftpServerUtils.getError(5); //ERROR - FILE ALREADY EXISTS
             else {
-                //file.setReadable(false);
                 openFile = file;
             }
         } catch (IOException e) {
