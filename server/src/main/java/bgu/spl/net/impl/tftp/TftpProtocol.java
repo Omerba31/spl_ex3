@@ -5,7 +5,6 @@ import bgu.spl.net.srv.BlockingConnectionHandler;
 import bgu.spl.net.srv.Connections;
 
 import java.io.*;
-import java.nio.file.Files;
 import java.util.LinkedList;
 
 public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
@@ -31,32 +30,28 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
     @Override
     public byte[] process(byte[] message) throws Exception {
         byte type = message[1];
-        byte[] data = new byte[message.length - 2];
-        System.arraycopy(message, 2, data, 0, data.length);
-        if (data.length > 0 && data[data.length - 1] == 0) data = Util.cutFromEnd(data, 1);
-        //if (!isConnected & type != 7) return Util.getError(new byte[]{0, 6});
-        if (isConnected & type == 7) return Util.getError(new byte[]{0, 7});
+        // user has to connect once
+        if (!isConnected & type != 7) return TftpServerUtils.getError(6);
+        if (isConnected & type == 7) return TftpServerUtils.getError(7);
         switch (type) {
             case 1:
-                return RRQ(data);
+                return RRQ(message);
             case 2:
-                return WRQ(data);
+                return WRQ(message);
             case 3:
-                return dataRQ(data);
+                return dataRQ(message);
             case 4:
-                return AckRQ(data);
-            case 6:
-                return dirRQ(data);
-            case 7:
-                return LogRQ(data);
-            case 8:
-                return delRQ(data);
-            case 0xa:
-                return discRQ(data);
-
+                return AckRQ(message);
             //case 5: not receiving errors from client
+            case 6:
+                return dirRQ(message);
+            case 7:
+                return LogRQ(message);
+            case 8:
+                return delRQ(message);
             //case 9: not receiving bCast from client
-
+            case 0xa:
+                return discRQ(message);
             default:
                 throw new UnsupportedOperationException("not to be used from client");
         }
@@ -67,18 +62,22 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
         return shouldTerminate;
     }
 
-    private byte[] RRQ(byte[] filename) throws Exception {
-        File file = Util.getFile(new String(filename));
-        if (!file.exists()) return Util.getError(new byte[]{0, 1});
+    private byte[] RRQ(byte[] massage) throws Exception {
+        // in the definition of RRQ packet, the first two bytes are OP and the last one is 0
+        File file = TftpServerUtils.getFile(new String(
+                TftpServerUtils.getPartOfArray(massage, 2, massage.length - 2)));
+        if (!file.exists()) return TftpServerUtils.getError(1);
         openFile = file;
-        return Util.createDataPacket((short) 1, Util.readPartOfFile(openFile, (short) 1));
+        return TftpServerUtils.createDataPacket((short) 1, TftpServerUtils.readPartOfFile(openFile, (short) 1));
     }
 
-    private byte[] WRQ(byte[] fileName) throws IOException {
-        File file = Util.getFile(new String(fileName));
+    private byte[] WRQ(byte[] massage) throws IOException {
+        // in the definition of WRQ packet, the first two bytes are OP and the last one is 0
+        File file = TftpServerUtils.getFile(new String(
+                TftpServerUtils.getPartOfArray(massage, 2, massage.length - 2)));
         try {
             if (!file.createNewFile())
-                return Util.getError(new byte[]{0, 5}); //ERROR - FILE ALREADY EXISTS
+                return TftpServerUtils.getError(5); //ERROR - FILE ALREADY EXISTS
             else {
                 //file.setReadable(false);
                 openFile = file;
@@ -89,37 +88,38 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
         return new byte[]{0, 4, 0, 0}; // ACK packet - client starts writing to file
     }
 
-    private byte[] dataRQ(byte[] data) throws Exception {
+    private byte[] dataRQ(byte[] massage) throws Exception {
         if (openFile == null) throw new FileNotFoundException("no open file");
-        byte[] onlyData = new byte[data.length - 4];
-        System.arraycopy(data, 4, onlyData, 0, onlyData.length);
-        Util.writeInto(openFile, onlyData);
-        if (onlyData.length < Util.MAX_PACKET_LENGTH) {
+        // in data packet, the first 6 are info about the data
+        TftpServerUtils.writeInto(openFile, TftpServerUtils.getPartOfArray(massage, 6));
+        if (massage.length < TftpServerUtils.MAX_PACKET_LENGTH + 6) {
             //openFile.setReadable(true);
             //openFile.setReadOnly();
-            bCast(Util.addZero(Util.concurArrays(new byte[]{0, 9, 1}, openFile.getName().getBytes())));
+            bCast(TftpServerUtils.concatArrays(new byte[]{0, 9, 1}, openFile.getName().getBytes(), new byte[]{0}));
             openFile = null;
         }
-        return new byte[]{0, 4, data[2], data[3]};
+        // indexes 4 and 5 are the block number, therefore we send ACK of block {4,5}
+        return new byte[]{0, 4, massage[4], massage[5]};
     }
 
-    private byte[] AckRQ(byte[] lastACK) {
+    private byte[] AckRQ(byte[] massage) {
         if (openFile == null) return null;
-        short currentPart = Util.convertBytesToShort(lastACK[0], lastACK[1]);
+        // in ACK packet 2 and 3 are the indexes of the block number
+        short currentPart = TftpServerUtils.convertBytesToShort(massage[2], massage[3]);
         currentPart++;
         byte[] currentMessage = null;
         try {
-            currentMessage = Util.readPartOfFile(openFile, currentPart);
+            currentMessage = TftpServerUtils.readPartOfFile(openFile, currentPart);
         } catch (IOException ex) {
             throw new RuntimeException("can't read from file");
         }
         if (currentMessage == null) return null;
-        if (currentMessage.length < Util.MAX_PACKET_LENGTH) openFile = null;
-        return Util.createDataPacket(currentPart, currentMessage);
+        if (currentMessage.length < TftpServerUtils.MAX_PACKET_LENGTH) openFile = null;
+        return TftpServerUtils.createDataPacket(currentPart, currentMessage);
     }
 
-    private byte[] dirRQ(byte[] data) {
-        File directory = Util.getFilesDirectory();
+    private byte[] dirRQ(byte[] massage) {
+        File directory = TftpServerUtils.getFilesDirectory();
         File[] files = directory.listFiles();
         LinkedList<Byte> fileNamesList = new LinkedList<>();
         if (files != null) {
@@ -131,24 +131,25 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
             }
             if (!fileNamesList.isEmpty()) fileNamesList.removeLast();
         }
-        return Util.createDataPacket((short) 1, Util.convertListToArray(fileNamesList));
+        return TftpServerUtils.createDataPacket((short) 1, TftpServerUtils.convertListToArray(fileNamesList));
     }
 
-    private byte[] LogRQ(byte[] message) throws IOException {
-        String userName = new String(message);
+    private byte[] LogRQ(byte[] massage) throws IOException {
+        // in the definition of LOGRQ packet, the first two bytes are OP and the last one is 0
+        String userName =new String(TftpServerUtils.getPartOfArray(massage, 2, massage.length - 2));
         ownerId = userName.hashCode();
-        if (!connections.canConnect(ownerId)) return Util.getError(new byte[]{0, 7});
+        if (!connections.canConnect(ownerId)) return TftpServerUtils.getError(7);
         connections.connect(ownerId, handler);
         isConnected = true;
         return new byte[]{0, 4, 0, 0};
     }
 
-    private byte[] delRQ(byte[] data) {
-        String filename = new String(data);
-        if (!Util.isExists(filename)) return Util.getError(new byte[]{0, 1});
-        Util.getFile(filename).delete();
-        bCast(Util.addZero(
-                Util.concurArrays(new byte[]{0, 9, 0}, data)));
+    private byte[] delRQ(byte[] massage) {
+        // in the definition of DELRQ packet, the first two bytes are OP and the last one is 0
+        String filename =new String(TftpServerUtils.getPartOfArray(massage, 2, massage.length - 2));
+        if (!TftpServerUtils.isExists(filename)) return TftpServerUtils.getError(1);
+        TftpServerUtils.getFile(filename).delete();
+        bCast(TftpServerUtils.concatArrays(new byte[]{0, 9, 0}, filename.getBytes(), new byte[]{0}));
         return new byte[]{0, 4, 0, 0};
     }
 

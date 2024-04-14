@@ -1,21 +1,15 @@
 package bgu.spl.net.impl.tftp;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.List;
-import java.util.NoSuchElementException;
 
 public class Util {
-    public static final short MAX_PACKET_LENGTH = (short)512;
-    public static boolean runningOnLinux=true;
-
-    public static boolean isLastPart(byte[] firstMessage, int currentPart) {
-        return firstMessage.length < currentPart * MAX_PACKET_LENGTH;
-    }
+    public static final short MAX_PACKET_LENGTH = 512;
+    public static boolean runningOnLinux = true;
 
     public static byte[] convertListToArray(List<Byte> list) {
         byte[] retByte = new byte[list.size()];
@@ -24,37 +18,6 @@ public class Util {
         }
         return retByte;
     }
-
-    public static byte[] hexToBytes(byte[] hexBytes) {
-        byte[] bytes = new byte[hexBytes.length / 2];
-        for (int i = 0; i < hexBytes.length; i += 2) {
-            String hexPair = new String(hexBytes, i, 2, StandardCharsets.US_ASCII);
-            bytes[i / 2] = (byte) Integer.parseInt(hexPair, 16);
-        }
-        return bytes;
-    }
-
-    public static byte[] getPartArray(byte[] src, short blockNumber) {
-        int numOfBlocksToRemove = blockNumber - 1;
-        int copyLength = src.length - (MAX_PACKET_LENGTH * numOfBlocksToRemove);
-        if (copyLength < 0)
-            throw new NoSuchElementException("block number: " + blockNumber + " doesn't exist");
-        if (copyLength == 0) // for check
-            System.out.println("empty packet");
-        if (copyLength > MAX_PACKET_LENGTH) // NOT legal sized packet
-            copyLength = MAX_PACKET_LENGTH;
-        byte[] retByte = new byte[copyLength];
-        System.arraycopy(src, numOfBlocksToRemove * MAX_PACKET_LENGTH, retByte, 0, copyLength);
-        return retByte;
-    }
-
-    /*public static short byteHexArrayToShort(byte[] bytes) {
-        StringBuilder sb = new StringBuilder();
-        for (byte b : bytes) {
-            sb.append(String.format("%02X", b)); // Convert byte to hexadecimal string
-        }
-        return Short.parseShort(sb.toString());
-    }*/
 
     public static byte[] convertShortToByteArray(short s) {
         return new byte[]{(byte) ((s >> 8) & 0xFF), (byte) (s & 0xff)};
@@ -65,33 +28,39 @@ public class Util {
     }
 
     public static byte[] createDataPacket(short blockNumber, byte[] message) {
-        //byte[] data = getPartArray(message, blockNumber);
-        byte[] info = concurArrays(convertShortToByteArray((short) message.length),
-                convertShortToByteArray(blockNumber));
-        info = concurArrays(new byte[]{0, 3}, info);
-        return Util.concurArrays(info, message);
+        return concatArrays(new byte[]{0, 3},
+                convertShortToByteArray((short) message.length),
+                convertShortToByteArray(blockNumber),
+                message);
     }
 
-    public static byte[] addZero(byte[] message) {
-        return concurArrays(message, new byte[]{0});
+    public static byte[] getPartOfArray(byte[] arr, int startIndex, int lastIndex) {
+        byte[] result = new byte[lastIndex - startIndex + 1];
+        System.arraycopy(arr, startIndex, result, 0, result.length);
+        return result;
     }
 
-    public static byte[] concurArrays(byte[] a1, byte[] a2) {
-        byte[] retByte = new byte[a1.length + a2.length];
-        System.arraycopy(a1, 0, retByte, 0, a1.length);
-        System.arraycopy(a2, 0, retByte, a1.length, a2.length);
-        return retByte;
+    public static byte[] getPartOfArray(byte[] arr, int startIndex) {
+        return getPartOfArray(arr, startIndex, arr.length - 1);
     }
 
-    public static byte[] cutFromEnd(byte[] arr, int cut) {
-        byte[] retByte = new byte[arr.length - cut];
-        System.arraycopy(arr, 0, retByte, 0, retByte.length);
-        return retByte;
+    public static byte[] concatArrays(byte[]... arrays) {
+        int totalLength = 0;
+        for (byte[] array : arrays) {
+            totalLength += array.length;
+        }
+        byte[] result = new byte[totalLength];
+        int currentIndex = 0;
+        for (byte[] array : arrays) {
+            System.arraycopy(array, 0, result, currentIndex, array.length);
+            currentIndex += array.length;
+        }
+        return result;
     }
 
     public static File getFilesDirectory() {
         String path;
-        if(!runningOnLinux) path = System.getProperty("user.dir") + "\\client\\Files";
+        if (!runningOnLinux) path = System.getProperty("user.dir") + "\\client\\Files";
         else path = "Files" + File.separator;
         return new File(path);
     }
@@ -100,52 +69,46 @@ public class Util {
         File[] arr = getFilesDirectory().listFiles((dir, name) -> name.equals(fileName));
         if (arr == null || arr.length == 0) return new File(getFilesDirectory(), fileName);
         return arr[0];
-        //return new File(getFilesDirectory(), fileName);
     }
 
     public static boolean isExists(String filename) {
         File directory = getFilesDirectory();
-        File[] arr = directory.listFiles((dir, name) -> name.equals(filename));
-        return (arr != null && arr.length > 0);
+        return directory.listFiles((dir, name) -> name.equals(filename)).length > 0;
     }
+
     public static void writeInto(File destination, byte[] data) throws IOException {
-        FileOutputStream out = new FileOutputStream(destination,true);
+        FileOutputStream out = new FileOutputStream(destination, true);
         out.write(data);
         out.close();
     }
-    public static byte[] readPartOfFile(File file, short part) throws IOException {
-        return readPartOfFile(file, (long) (part-1) *Util.MAX_PACKET_LENGTH, Util.MAX_PACKET_LENGTH);
-    }
-    private static byte[] readPartOfFile(File file, long startPosition, short bytesToRead) throws IOException {
 
+    public static byte[] readPartOfFile(File file, short part) throws IOException {
+        return readPartOfFile(file, (long) (part - 1) * MAX_PACKET_LENGTH, MAX_PACKET_LENGTH);
+    }
+
+    private static byte[] readPartOfFile(File file, long startPosition, short bytesToRead) throws IOException {
         long fileSize = Files.size(file.toPath());
         if (bytesToRead > fileSize - startPosition)
             bytesToRead = (short) (fileSize - startPosition);
         //prevent error of reading outside the file
-        if (bytesToRead<1) return null;
+        if (bytesToRead < 1) return null;
         try (FileInputStream fis = new FileInputStream(file)) {
             fis.skip(startPosition); // Move to the start position
-
             byte[] buffer = new byte[bytesToRead];
             int bytesRead = fis.read(buffer); // Read bytes into the buffer
-
-            if (bytesRead != -1) {
-                return buffer;
-            }
+            if (bytesRead != -1) return buffer;
         }
-        return new byte[0];
+        return null;
     }
-        public static byte[] getError(byte[] errorType) {
-        if (errorType[0] != 0) throw new IllegalArgumentException("Illegal error type inserted!");
-        byte[] error = Util.concurArrays(new byte[]{0, 5}, errorType);
+
+    public static byte[] getError(int errorType) {
+        if (errorType < 0 | errorType > 9) throw new IllegalArgumentException("Illegal error type inserted!");
+        byte[] error = new byte[]{0, 5, 0, (byte) errorType};
         String errorMessage;
 
-        switch (errorType[1]) {
-            case 0:
-                errorMessage = "Not defined, see error message (if any).";
-                break;
+        switch (errorType) {
             case 1:
-                errorMessage = "1 File not found – RRQ DELRQ of non-existing file.";
+                errorMessage = "File not found – RRQ / DELRQ of non-existing file.";
                 break;
             case 2:
                 errorMessage = "Access violation – File cannot be written, read or deleted.";
@@ -168,13 +131,7 @@ public class Util {
             default:
                 throw new IllegalArgumentException("Illegal error type inserted!");
         }
-        return Util.addZero(Util.concurArrays(error, errorMessage.getBytes()));
-    }
-
-    public static void printHexBytes(byte[] arr) {
-        for (byte b : arr) {
-            System.out.print(String.format("%02X ", b));
-        }
+        return concatArrays(error, errorMessage.getBytes(), new byte[]{0});
     }
 
     public static enum OP {None, RRQ, WRQ, DATA, ACK, ERROR, DIRQ, LOGRQ, DELRQ, BCAST, DISC}

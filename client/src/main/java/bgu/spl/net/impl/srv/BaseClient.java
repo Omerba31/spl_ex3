@@ -1,15 +1,14 @@
 package bgu.spl.net.impl.srv;
 
-import bgu.spl.net.impl.tftp.Util;
 import bgu.spl.net.impl.tftp.TftpClientProtocol;
 import bgu.spl.net.impl.tftp.TftpEncoderDecoder;
+import bgu.spl.net.impl.tftp.Util;
 
 
 import java.io.*;
 import java.net.Socket;
 import java.util.Arrays;
 import java.util.Scanner;
-
 public class BaseClient {
     private final int port;
     private final TftpClientProtocol protocol;
@@ -87,13 +86,20 @@ public class BaseClient {
                     }
                 }
             }
-            listeningThread.interrupt();
-            listeningThread.join();
             sock.close();
-            System.out.println("client terminated");
-        } catch (Exception ignored) {
-            System.out.println("connection problems");
+        } catch (IOException ex) {
+            ex.printStackTrace();
         }
+        boolean terminated = false;
+        do {
+            try {
+                listeningThread.interrupt();
+                listeningThread.join();
+                terminated = true;
+            }catch (InterruptedException ignored){}
+
+        }while (!terminated);
+        System.out.println("client terminated");
     }
 
     private Runnable listen() {

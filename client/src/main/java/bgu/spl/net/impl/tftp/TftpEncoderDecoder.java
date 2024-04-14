@@ -85,9 +85,7 @@ public class TftpEncoderDecoder implements MessageEncoderDecoder<String> {
     }
 
     private byte[] getSimplePacket(int opcode, byte[] name) {
-        byte[] encoded = Util.concurArrays(new byte[]{0, (byte) opcode}, name);
-        encoded = Util.addZero(encoded);
-        return encoded;
+        return Util.concatArrays(new byte[]{0, (byte) opcode}, name, new byte[]{0});
     }
 
 }
