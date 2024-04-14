@@ -63,7 +63,8 @@ public class TftpClientProtocol implements MessagingProtocol<byte[]> {
                     request = Util.OP.None;
                     recievedAnswer = true;
                     openFile = null;
-                } else result = new byte[]{0, 4, answer[4], answer[5]}; // ACK packet
+                }
+                result = new byte[]{0, 4, answer[4], answer[5]}; // ACK packet
                 break;
             case 4: //ACK packet
                 short currentPart = Util.convertBytesToShort(answer[2], answer[3]);
@@ -78,6 +79,7 @@ public class TftpClientProtocol implements MessagingProtocol<byte[]> {
                     try {
                         result = Util.readPartOfFile(openFile, currentPart);
                     } catch (Exception ignored) {
+                        throw new RuntimeException("can't read from file");
                     }
                     if (result == null || result.length == 0) {
                         System.out.println("WRQ " + openFile.getName() + " completed");
@@ -85,6 +87,7 @@ public class TftpClientProtocol implements MessagingProtocol<byte[]> {
                         recievedAnswer = true;
                         result = null;
                     }
+                    else result = Util.createDataPacket(currentPart, result);
                 }
                 break;
             case 5: //error packet

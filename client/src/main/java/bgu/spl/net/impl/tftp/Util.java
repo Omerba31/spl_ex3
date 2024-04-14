@@ -119,9 +119,10 @@ public class Util {
     private static byte[] readPartOfFile(File file, long startPosition, short bytesToRead) throws IOException {
 
         long fileSize = Files.size(file.toPath());
-        if (bytesToRead > fileSize - startPosition) bytesToRead = (short) (fileSize - startPosition);
+        if (bytesToRead > fileSize - startPosition)
+            bytesToRead = (short) (fileSize - startPosition);
         //prevent error of reading outside the file
-
+        if (bytesToRead<1) return null;
         try (FileInputStream fis = new FileInputStream(file)) {
             fis.skip(startPosition); // Move to the start position
 

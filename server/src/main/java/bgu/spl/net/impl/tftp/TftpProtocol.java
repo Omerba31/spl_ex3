@@ -21,7 +21,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
     @Override
     public void start(int connectionId, Connections<byte[]> connections, BlockingConnectionHandler<byte[]> handler) {
         this.connections = (TftpConnections<byte[]>) connections;
-        this.shouldTerminate=false;
+        this.shouldTerminate = false;
         this.ownerId = connectionId;
         this.isConnected = false;
         this.handler = handler;
@@ -107,12 +107,14 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
         if (openFile == null) return null;
         short currentPart = Util.convertBytesToShort(lastACK[0], lastACK[1]);
         currentPart++;
-        byte[] currentMessage=null;
+        byte[] currentMessage = null;
         try {
             currentMessage = Util.readPartOfFile(openFile, currentPart);
-        } catch (Exception ignored){}
-        if (currentMessage==null) return null;
-        if (currentMessage.length<Util.MAX_PACKET_LENGTH) openFile = null;
+        } catch (IOException ex) {
+            throw new RuntimeException("can't read from file");
+        }
+        if (currentMessage == null) return null;
+        if (currentMessage.length < Util.MAX_PACKET_LENGTH) openFile = null;
         return Util.createDataPacket(currentPart, currentMessage);
     }
 
