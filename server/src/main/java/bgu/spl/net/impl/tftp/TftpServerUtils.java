@@ -71,9 +71,24 @@ public class TftpServerUtils {
         return arr[0];
     }
 
+    public static File createFile(String fileName) {
+        fileName = "_" + fileName;
+        File file = getFile(fileName);
+        try {
+            file.createNewFile();
+        } catch (IOException ex) {
+            throw new RuntimeException("can't create file");
+        }
+        return file;
+    }
     public static boolean isExists(String filename) {
         File directory = getFilesDirectory();
-        return directory.listFiles((dir, name) -> name.equals(filename)).length > 0;
+        return directory.listFiles((dir, name) -> name.equals(filename)).length > 0 |
+                directory.listFiles((dir, name) -> name.equals("_" + filename)).length > 0;
+    }
+
+    public static boolean isExcessable(File f){
+        return f!=null && f.getName().charAt(0)!='_' && f.canRead();
     }
 
     public static void writeInto(File destination, byte[] data) throws IOException {
