@@ -10,6 +10,7 @@ import java.util.List;
 public class TftpServerUtils {
     public static final short MAX_PACKET_LENGTH = 512;
     public static boolean runningOnLinux = true;
+    public static final Object filesLock= new Object();
 
     public static byte[] convertListToArray(List<Byte> list) {
         byte[] retByte = new byte[list.size()];
@@ -66,28 +67,40 @@ public class TftpServerUtils {
     }
 
     public static File getFile(String fileName) {
-        File[] arr = getFilesDirectory().listFiles((dir, name) -> name.equals(fileName));
-        if (arr == null || arr.length == 0) return new File(getFilesDirectory(), fileName);
-        return arr[0];
+        synchronized (filesLock) {
+            File[] arr = getFilesDirectory().listFiles((dir, name) -> name.equals(fileName));
+            if (arr == null || arr.length == 0) return new File(getFilesDirectory(), fileName);
+            return arr[0];
+        }
     }
 
     public static File createFile(String fileName) {
-        fileName = "_" + fileName;
-        File file = getFile(fileName);
-        try {
-            file.createNewFile();
-        } catch (IOException ex) {
-            throw new RuntimeException("can't create file");
+        synchronized (filesLock) {
+            fileName = "_" + fileName;
+            File file = getFile(fileName);
+            try {
+                file.createNewFile();
+            } catch (IOException ex) {
+                throw new RuntimeException("can't create file");
+            }
+            return file;
         }
-        return file;
     }
     public static boolean isExists(String filename) {
-        File directory = getFilesDirectory();
-        return directory.listFiles((dir, name) -> name.equals(filename)).length > 0 |
-                directory.listFiles((dir, name) -> name.equals("_" + filename)).length > 0;
+        synchronized (filesLock) {
+            File directory = getFilesDirectory();
+            return directory.listFiles((dir, name) -> name.equals(filename)).length > 0 |
+                    directory.listFiles((dir, name) -> name.equals("_" + filename)).length > 0;
+        }
+    }
+    public static boolean isComplete(String filename){
+        synchronized (filesLock) {
+            File directory = getFilesDirectory();
+            return directory.listFiles((dir, name) -> name.equals(filename)).length > 0;
+        }
     }
 
-    public static boolean isExcessable(File f){
+    public static boolean isAxcessable(File f){
         return f!=null && f.getName().charAt(0)!='_' && f.canRead();
     }
 

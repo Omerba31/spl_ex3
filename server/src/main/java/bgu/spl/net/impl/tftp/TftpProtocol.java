@@ -8,7 +8,6 @@ import java.io.*;
 import java.util.LinkedList;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 
 public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
@@ -81,7 +80,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
     private synchronized byte[] WRQ(byte[] massage) throws IOException {
         // in the definition of WRQ packet, the first two bytes are OP and the last one is 0
         String name = new String(getPartOfArray(massage, 2, massage.length - 2));
-        if (isExists(name)) return getError(5); //ERROR - FILE ALREADY EXISTS
+        if (isExists(name)) return getError(5); //ERROR - FILE ALREADY EXISTS, also if other thread is downloading the same file
         File file = TftpServerUtils.getFile("_" + name);
         try {
             file.createNewFile();
@@ -101,7 +100,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
             reading.remove(newName);
             bCast(TftpServerUtils.concatArrays(new byte[]{0, 9, 1}, newName.getBytes(), new byte[]{0}));
             File newFile = new File(openFile.getParent(), newName);
-            System.out.println("rename success: " + openFile.renameTo(newFile));
+            openFile.renameTo(newFile);
             openFile = null;
         }
         // indexes 4 and 5 are the block number, therefore we send ACK of block {4,5}
@@ -130,7 +129,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
         LinkedList<Byte> fileNamesList = new LinkedList<>();
         if (files != null) {
             for (File file : files) {
-                if (!isExcessable(file)) continue;
+                if (!isAxcessable(file)) continue;
                 for (Byte letter : file.getName().getBytes())
                     fileNamesList.add(letter);
                 fileNamesList.add((byte) 0);
@@ -153,7 +152,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
     private byte[] delRQ(byte[] massage) {
         // in the definition of DELRQ packet, the first two bytes are OP and the last one is 0
         String filename =new String(TftpServerUtils.getPartOfArray(massage, 2, massage.length - 2));
-        if (!TftpServerUtils.isExists(filename)) return getError(1);
+        if (!TftpServerUtils.isComplete(filename)) return getError(1); //there is no file to delete
         if (reading.containsKey(filename)) return getError(2); // you can't delete file which other user is downloading
         TftpServerUtils.getFile(filename).delete();
         bCast(TftpServerUtils.concatArrays(new byte[]{0, 9, 0}, filename.getBytes(), new byte[]{0}));
