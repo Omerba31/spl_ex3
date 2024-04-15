@@ -60,8 +60,9 @@ public class Util {
 
     public static File getFilesDirectory() {
         String path;
-        if (!runningOnLinux) path = System.getProperty("user.dir") + "\\client\\Files";
-        else path = "Files" + File.separator;
+        if (!runningOnLinux)
+            path = System.getProperty("user.dir") + "\\client\\src\\main\\java\\bgu\\spl\\net\\impl\\tftp\\Files";
+        else path = "src/main/java/bgu/spl/net/impl/tftp/Files/";
         return new File(path);
     }
 
@@ -73,7 +74,12 @@ public class Util {
 
     public static boolean isExists(String filename) {
         File directory = getFilesDirectory();
-        return directory.listFiles((dir, name) -> name.equals(filename)).length > 0;
+        File[] files = directory.listFiles();
+        if (files == null) return false;
+        for (File f : files) {
+            if (f.getName().equals(filename)) return true;
+        }
+        return false;
     }
 
     public static void writeInto(File destination, byte[] data) throws IOException {

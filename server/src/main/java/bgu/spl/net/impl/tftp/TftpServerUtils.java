@@ -88,9 +88,13 @@ public class TftpServerUtils {
     }
     public static boolean isExists(String filename) {
         synchronized (filesLock) {
-            File directory = getFilesDirectory();
-            return directory.listFiles((dir, name) -> name.equals(filename)).length > 0 |
-                    directory.listFiles((dir, name) -> name.equals("_" + filename)).length > 0;
+                File directory = getFilesDirectory();
+                File[] files = directory.listFiles();
+                if (files == null) return false;
+                for (File f : files) {
+                    if (f.getName().equals(filename) | f.getName().equals("_" + filename)) return true;
+                }
+                return false;
         }
     }
     public static boolean isComplete(String filename){
